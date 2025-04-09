@@ -2,9 +2,9 @@ Package: startbox
 Title: visualisation of experimental data in plant protection
 Version: 0.0.0.9000
 Authors@R: 
-    person("Xavier", "Delpuech", email = "xavier.delpuech@vignevin.com", role = c("aut", "cre"))
     person("Anne-Sophie", "Chazalmartin", email = "anne-sophie.chazalmartin@vignevin.com", role = c("aut", "cre"))
     person("Hervé", "Maire", email = "herve.maire@vignevin.com", role = c("aut", "cre"))
+    person("Xavier", "Delpuech", email = "xavier.delpuech@vignevin.com", role = c("aut", "cre"))
 Description: This package is used for management and visualisation of experimental data in plant protection trials.
 License: GPL (>= 3)
 Encoding: UTF-8
