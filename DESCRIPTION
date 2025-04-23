@@ -1,12 +1,20 @@
 Package: startbox
-Title: visualisation of experimental data in plant protection
+Title: visualisation and standardization of experimental data in plant protection
 Version: 0.0.0.9000
-Authors@R: 
-    person("Anne-Sophie", "Chazalmartin", email = "anne-sophie.chazalmartin@vignevin.com", role = c("aut", "cre"))
-    person("Hervé", "Maire", email = "herve.maire@vignevin.com", role = c("aut", "cre"))
-    person("Xavier", "Delpuech", email = "xavier.delpuech@vignevin.com", role = c("aut", "cre"))
+Authors@R: c(
+    person("Xavier", "Delpuech", , "xavier.delpuech@vignevin.com", role = c("aut", "cre")),
+    person("Hervé", "Maire", , "herve.maire@vignevin.com", role = "aut"),
+    person("Anne-Sophie", "Chazalmartin", , "anne-sophie.chazalmartin@vignevin.com", role = "aut"),
+    person(, "Institut Français de la Vigne et du Vin", role = "cph")
+  )
 Description: This package is used for management and visualisation of experimental data in plant protection trials.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Language: fr
+Imports: 
+    magrittr
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
