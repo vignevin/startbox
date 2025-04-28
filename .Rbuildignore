@@ -3,3 +3,4 @@
 ^LICENSE\.md$
 ^dev_history\.R$
 ^misc$
+^README\.Rmd$
