@@ -18,108 +18,123 @@ user_data <- R6::R6Class(
     excel_data_trial =NULL,
     # combined data
     combined_data = NULL,
-    #data.frame containing placette sheet data if filled in 
+    #data.frame containing placette sheet data if filled in
     plot_desc = NULL,
     #data.frame containing modalite sheet data if filled in
     moda_desc = NULL,
     # obs_data is the list of dataframes with observation data. each list item has the name of the source file
     # if the item is a sheet of an excel file, the name will be filename_sheetname
     obs_data = list(),
-    
-    
-    # initialize function to load the model excel workbook
+
+
+    #' @description
+        #' create a new "UserData" object
+        #'
+        #'
+    #'
+    #' @param excel_model excel template path
+    #' @param excel_data_trial excel data trial path
+    #'
+    #' @returns a  "UserData" object
     initialize = function(excel_model = NULL, excel_data_trial =NULL){
       self$excel_model <- excel_model
       self$excel_data_trial <- excel_data_trial
     },
-    
-    
-    # Method to add or update an element
+
+
+    # Add or update observation dataset
+    #' @description
+        #' Internal function to add or update a dataset of observations
+    #'
+    #' @param name the name of the observation to add
+    #' @param df dataframe with observation data.
+    #'
+    #' @returns updated UserData
     add_obs = function(name, df) {
       if (name %in% names(self$obs_data)) {
         message(paste("Updating element:", name))
       } else {
         message(paste("Adding a new element:", name))
       }
-      
+
       # Add the columns prov_name and prov_date
       df$prov_name <- as.character(name)
       df$prov_date <- format(Sys.Date(), "%d/%m/%Y")
-      
+
       # Convert *_PC columns to numeric even if they are text
       pc_cols <- grep("_PC$", names(df), value = TRUE)
       df[pc_cols] <- lapply(df[pc_cols], function(col) as.numeric(as.character(col)))
-      
+
       self$obs_data[[name]] <- df
     },
-    
-    # Method for displaying elements 
+
+    # Method for displaying elements
     show_obs_data = function() {
       lapply(self$obs_data, head)
     },
-    
+
     combine_data_obs = function() {
       if (length(self$obs_data) == 0) {
         message("No data to combine.")
         return(NULL)
       }
-      
+
       self$obs_data <- harmonize_all_obs_data(self$obs_data)
       combined <- combine_and_reorder_obs(self$obs_data)
-      
+
       prepare_excel_model(self)
       read_metadata_sheets(self)
-      
-      wb <- wb_load(self$excel_data_trial)
+
+      wb <- openxlsx2::wb_load(self$excel_data_trial)
       combined <- merge_with_existing_data(wb, combined)
-      
+
       wb$add_worksheet("data")
       wb$add_data_table(sheet = "data", x = combined)
       wb$set_active_sheet("data")
       wb$save(self$excel_data_trial)
-      
+
       self$combined_data <- combined
-      message("✅ Combined data has been inserted into the 'data' sheet.")      
+      message("✅ Combined data has been inserted into the 'data' sheet.")
       return(combined)
     },
-    
+
     prepare_final_data = function() {
       if (is.null(self$plot_desc) || is.null(self$moda_desc)) {
         message("❌ plot_desc or moda_desc missing.")
         return(NULL)
       }
-      
+
       # Step 1 — Join plot + modality
       self$plot_desc$factor_level_code <- as.character(self$plot_desc$factor_level_code)
       self$moda_desc$xp_trt_code <- as.character(self$moda_desc$xp_trt_code)
-      
+
       df_plot_moda <- dplyr::left_join(
         self$plot_desc,
         self$moda_desc,
         by = c("factor_level_code" = "xp_trt_code")
       )
-      
+
       # Explicitly add xp_trt_code
       df_plot_moda$xp_trt_code <- df_plot_moda$factor_level_code
-      
+
       # Step 2 — Add observation data
       if (length(self$obs_data) == 0) {
         message("⚠️ No observation data to join. Returning only plot + modality.")
         return(df_plot_moda)
       }
-      
+
       if (is.null(self$combined_data)) {
         message("❌ Combined data is not ready yet. Call combine_data_obs() first.")
         return(NULL)
       }
-      
+
       df_obs <- self$combined_data
       df_obs$plot_id <- as.character(df_obs$plot_id)
       df_plot_moda$plot_id <- as.character(df_plot_moda$plot_id)
-      
+
       # Final merge of observations + plot + modality
       df_final <- dplyr::left_join(df_obs, df_plot_moda, by = "plot_id")
-      
+
       return(df_final)
     }
   )
@@ -131,11 +146,11 @@ harmonize_all_obs_data <- function(obs_data) {
 
 combine_and_reorder_obs <- function(obs_data) {
   combined <- dplyr::bind_rows(obs_data)
-  
+
   template_cols <- c("prov_name", "prov_date", "observation_date", "bbch_stage", "plot_id")
   valid_cols <- intersect(template_cols, names(combined))
   ordered_cols <- c(valid_cols, setdiff(names(combined), valid_cols))
-  
+
   combined <- combined[, ordered_cols, drop = FALSE]
   return(combined)
 }
@@ -151,7 +166,7 @@ prepare_excel_model <- function(self) {
 
 read_metadata_sheets <- function(self) {
   wb_trial <- wb_load(self$excel_data_trial)
-  
+
   if ("placette" %in% wb_trial$sheet_names) {
     placette_data <- wb_read(wb_trial, sheet = "placette")
     placette_data <- placette_data[rowSums(is.na(placette_data) | placette_data == "") != ncol(placette_data), ]
@@ -162,7 +177,7 @@ read_metadata_sheets <- function(self) {
       message("No data found in the 'placette' sheet.")
     }
   }
-  
+
   if ("modalite" %in% wb_trial$sheet_names) {
     modalite_data <- wb_read(wb_trial, sheet = "modalite")
     modalite_data <- modalite_data[rowSums(is.na(modalite_data) | modalite_data == "") != ncol(modalite_data), ]
@@ -178,18 +193,18 @@ read_metadata_sheets <- function(self) {
 merge_with_existing_data <- function(wb, combined) {
   if ("data" %in% wb$sheet_names) {
     old_data <- wb_read(wb, sheet = "data")
-    
+
     # Harmonize sensitive columns as character
     columns_to_character <- c("prov_name", "prov_date", "observation_date", "bbch_stage", "plot_id")
     for (col in columns_to_character) {
       if (col %in% names(old_data)) old_data[[col]] <- as.character(old_data[[col]])
       if (col %in% names(combined)) combined[[col]] <- as.character(combined[[col]])
     }
-    
+
     # *_PC columns → numeric
     pc_cols <- grep("_PC$", names(old_data), value = TRUE)
     old_data[pc_cols] <- lapply(old_data[pc_cols], function(col) as.numeric(as.character(col)))
-    
+
     if ("prov_name" %in% names(old_data) && "prov_name" %in% names(combined)) {
       # Files already present in the old dataset
       old_prov_files <- unique(old_data$prov_name)
@@ -202,36 +217,36 @@ merge_with_existing_data <- function(wb, combined) {
         old_data <- old_data[!(old_data$prov_name %in% prov_names_to_update), ]
       }
     }
-    
+
     # Finally, concatenate
     combined <- dplyr::bind_rows(old_data, combined)
-    
+
     # Remove the old sheet
     wb$remove_worksheet("data")
   }
-  
+
   return(combined)
 }
 
 harmonize_column_types <- function(df, types_map = NULL) {
-  
+
   if (is.null(types_map)) {
     types_df <- read.csv2("inst/extdata/star_dictionary.csv", stringsAsFactors = FALSE)
     types_df <- types_df[!(is.na(types_df$nom) | types_df$nom == "" |
                              is.na(types_df$Rclass) | types_df$Rclass == ""), ]
     types_map <- setNames(as.list(types_df$Rclass), types_df$nom)
   }
-  
+
   for (col in names(types_map)) {
     if (col %in% names(df)) {
       type <- types_map[[col]]
-      
+
       if (type == "date") {
         # Multiple attempts on common formats
         original_dates <- df[[col]]
         tryFormats <- c("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y")
         success <- FALSE
-        
+
         for (fmt in tryFormats) {
           test <- suppressWarnings(as.Date(original_dates, format = fmt))
           if (all(!is.na(test) | is.na(original_dates))) {
@@ -241,12 +256,12 @@ harmonize_column_types <- function(df, types_map = NULL) {
             break
           }
         }
-        
+
         if (!success) {
           warning(paste("❌ Could not convert column", col, "to Date. It remains as text."))
           df[[col]] <- as.character(original_dates)
         }
-        
+
       } else {
         # Standard conversion
         df[[col]] <- switch(
@@ -259,13 +274,13 @@ harmonize_column_types <- function(df, types_map = NULL) {
       }
     }
   }
-  
+
   # *_PC columns → numeric
   pc_cols <- grep("_PC$", names(df), value = TRUE)
   for (col in pc_cols) {
     df[[col]] <- as.numeric(as.character(df[[col]]))
   }
-  
+
   return(df)
 }
 
@@ -313,7 +328,7 @@ mydata$excel_data_trial
 
 mydata$combine_data_obs()
 
-#---- 
+#----
 
 mydata$plot_desc
 mydata$moda_desc
