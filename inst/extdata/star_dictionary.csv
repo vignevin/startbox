@@ -1,6 +1,7 @@
 nom;description;Rclass;uri
 bbch_stage;Stade phénologique lors de la mesure (échelle BBCH);character;vignevin:bbch_stage
 block_id;Code du boc. Un bloc regroupe plusieurs unités expérimentales. Les blocs sont utilisés pour réduire la variabilité expérimentale et améliorer la précision des comparaisons entre les traitements.;character;vignevin:block_id
+commune;Nom de la commune sur laquelle se trouve la parcelle;character;vignevin:commune
 commune_insee_id;Code INSEE de la commune (5 caractères alphanumériques);character;vignevin:commune_insee_id
 cultivar_name;"Nom de la variété (et clone si connu) produisant les fruits. Format de type ""Syrah N Cl300"" ou ""Grenache B"". Utiliser la nomenclature de https://www.plantgrape.fr/fr";character;vignevin:cultivar_name
 design_plan;Type de plan d'expérience;character;vignevin:design_plan
@@ -14,6 +15,7 @@ field_latitude;Latitude du centroïde de la parcelle  (degrés décimaux WGS84);num
 field_longitude;Longitude du centroïde de la parcelle (degrés décimaux WGS84);numeric;vignevin:field_longitude
 field_name;Nom (ou code) de la parcelle sur laquelle l’expérimentation a lieu;character;vignevin:field_name
 observation_date;Date de réalisation de l'observation.;date;vignevin:observation_date
+observation_name;Nom de l'observation.;character;vignevin:observation_name
 organization_name;Nom de l'institution responsable de l'expérimentation;character;vignevin:organization_name
 plant_spacing;Ecartement entre les ceps de vigne sur le rang, en m;numeric;vignevin:plant_spacing
 plot_id;Code de la parcelle unitaire (ou élémentaire) permettant son identification unique au sein de l'expérimentation;character;vignevin:plot_id
@@ -27,7 +29,7 @@ PM_LEAF_PC;"Surface of foliage attacked by Downy Mildew
 Creator : Eric Duchene
 Institution : INRAE";numeric;https://cropontology.org/term/CO_356:1000220
 prov_date;Date d'insertion des données;date;vignevin:prov_date
-prov_name;Nom du fichier source (provenance) des données. Par exemple, nom du fichier exporté de TopVigne.;character;vignevin:prov_name
+prov_name;"Nom du fichier source (provenance) des données. Par exemple, nom du fichier exporté de TopVigne. Pour une feuile Excel, par convention le nom est ""nom_fichier:nom_feuille""";character;vignevin:prov_name
 row_spacing;Ecartement entre les rangs de vigne, en m;numeric;vignevin:row_spacing
 suborganization_name;Unité (appartenant à une organisation plus large).;character;vignevin:suborganization_name
 UN_BER_PC;"Percentage of berries with Powdery Mildew
