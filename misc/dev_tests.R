@@ -37,7 +37,7 @@ user_data <- R6::R6Class(
       self$excel_model <- excel_model
       self$excel_data_trial <- excel_data_trial
     },
-    
+
     #' METTRE SKELETON
     add_metadata = function(name, value) {
       if (!is.character(name) || length(name) != 1) {
@@ -45,7 +45,7 @@ user_data <- R6::R6Class(
       }
       self$metadata[[name]] <- value
     },
-    
+
 
 
     # Add or update observation dataset
@@ -56,7 +56,7 @@ user_data <- R6::R6Class(
     #' @param df dataframe with observation data.
     #'
     #' @returns updated UserData
-    
+
     add_obs = function(name, df) {
       if (name %in% names(self$obs_data)) {
         message(paste("Updating element:", name))
@@ -75,11 +75,11 @@ user_data <- R6::R6Class(
     show_obs_data = function() {
       lapply(self$obs_data, head)
     },
-    
+
     #' @description
     #' Combines all loaded observation datasets, applies type harmonization, and merges them with an existing Excel trial file.
     #' If the Excel trial file does not exist, it is created from a template. Also reads available metadata sheets.
-    #' 
+    #'
     #' @return A combined `data.frame` of all observations, stored in `self$combined_data` and returned invisibly.
     combine_data_obs = function() {
       if (length(self$obs_data) == 0) {
@@ -94,17 +94,17 @@ user_data <- R6::R6Class(
       prepare_excel_model(self, filename = "testnomfichier.xlsx", directory = "C:/Users/hmaire.VIGNEVIN/OneDrive - IFV/Bureau")
       # Load placette and modalite sheets if present
       read_metadata_sheets(self)
-      
+
       # Merge with existing 'data' sheet if it exists
       wb <- openxlsx2::wb_load(self$excel_data_trial)
       combined <- merge_with_existing_data(wb, combined)
       combined <- combined[rowSums(is.na(combined) | combined == "") != ncol(combined), ]
-      
+
 
       self$combined_data <- combined
       return(combined)
     },
-    
+
     #---- A METTRE EN DEHORS DE LA CLASSE----
     #' @description
     #' Merges observation data with metadata sheets ('placette' and 'modalite') if available.
@@ -166,19 +166,19 @@ user_data <- R6::R6Class(
 #' @return None. Writes and saves into Excel.
 save_data_to_excel <- function(combined_data, excel_data_trial_path) {
   wb <- openxlsx2::wb_load(excel_data_trial_path)
-  
+
   # Remove existing "data" sheet if present
   if ("data" %in% wb$sheet_names) {
     wb$remove_worksheet("data")
   }
-  
+
   # Now create a new one cleanly
   wb$add_worksheet("data")
   wb$add_data_table(sheet = "data", x = combined_data)
   wb$set_active_sheet("data")
-  
+
   wb$save(excel_data_trial_path)
-  
+
   message("✅ Combined data has been saved into the 'data' sheet.")
 }
 
@@ -223,22 +223,22 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
   # Si le fichier trial n’existe pas ou est invalide
   if (is.null(self$excel_data_trial) || !file.exists(self$excel_data_trial)) {
     message("📁 Creating the trial Excel file from the blank template...")
-    
+
     # Définir le nom de fichier
     if (is.null(filename)) {
       filename <- paste0(tools::file_path_sans_ext(basename(self$excel_model)), "_copie.xlsx")
     }
-    
+
     # Définir le chemin complet
     if (is.null(directory)) {
       directory <- getwd()  # répertoire courant
     }
-    
+
     full_path <- file.path(directory, filename)
-    
+
     # Copier le modèle
     success <- file.copy(from = self$excel_model, to = full_path, overwrite = TRUE)
-    
+
     if (success) {
       self$excel_data_trial <- full_path
       message(paste("✅ Trial Excel created at:", full_path))
@@ -260,12 +260,12 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
 #' @param self An instance of the UserData R6 class.
 read_metadata_sheets <- function(self) {
   wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
-  
+
   # Read and store 'placette' sheet
   if ("placette" %in% wb_trial$sheet_names) {
     placette_data <- openxlsx2::wb_read(wb_trial, sheet = "placette")
     placette_data <- placette_data[rowSums(is.na(placette_data) | placette_data == "") != ncol(placette_data), ]
-    
+
     if (nrow(placette_data) > 0) {
       self$add_metadata("plot_desc", placette_data)
       message("✅ Sheet 'placette' loaded into metadata$placette.")
@@ -275,12 +275,12 @@ read_metadata_sheets <- function(self) {
   } else {
     message("ℹ️ Sheet 'placette' not found.")
   }
-  
+
   # Read and store 'modalite' sheet
   if ("modalite" %in% wb_trial$sheet_names) {
     modalite_data <- openxlsx2::wb_read(wb_trial, sheet = "modalite")
     modalite_data <- modalite_data[rowSums(is.na(modalite_data) | modalite_data == "") != ncol(modalite_data), ]
-    
+
     if (nrow(modalite_data) > 0) {
       self$add_metadata("moda_desc", modalite_data)
       message("✅ Sheet 'modalite' loaded into metadata$modalite.")
@@ -400,7 +400,7 @@ harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst
 #' @title Plot a Heatmap of Experimental Data
 #'
 #' @description
-#' Generates a heatmap based on experimental observation data, 
+#' Generates a heatmap based on experimental observation data,
 #' using `plot_x` and `plot_y` coordinates and coloring according to a selected disease variable (_PC columns).
 #'
 #' @param data A dataframe containing at least 'plot_x', 'plot_y', *_PC variable (e.g., PM_LEAF_PC) and a column plot_id
@@ -420,47 +420,51 @@ harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst
 #' @examples
 #' df <- mydata$prepare_final_data()
 #' plot_xpheat(df)
-#' 
+#'
+#'
+# METTRE VARIABLE EN PARAMETRE ENTREE
+# AJOUTER PLOT_ID DANS LE CHECK
+# SUPPRIMER XP_TRT DU GROUP_BY
 plot_xpheat <- function(data, titre = NULL, echelle = NULL) {
   library(ggplot2)
   library(dplyr)
-  
+
   # --- Vérification pos_x et pos_y ---
   if (!all(c("plot_x", "plot_y") %in% names(data))) {
     stop("Les colonnes 'plot_x' et 'plot_y' sont nécessaires pour tracer une heatmap.")
   }
-  
+
   # --- Trouver la bonne variable ---
   known_vars <- c("PM_LEAF_PC", "PM_BER_PC", "UN_LEAF_PC", "UN_BER_PC")
   candidate_vars <- intersect(known_vars, names(data))
-  
+
   if (length(candidate_vars) == 0) {
     stop("Aucune variable _PC trouvée dans vos données.")
   }
-  
+
   variable <- candidate_vars[1]
-  
+
   # Étape 1 : on calcule la moyenne par placette (plot_id)
   data_agg <- data %>%
     group_by(plot_id, plot_x, plot_y, xp_trt_code) %>%
     summarise(Valeurs = mean(.data[[variable]], na.rm = TRUE), .groups = "drop")
-  
+
   print(data_agg)
   print(str(data_agg))
-  
+
   if (nrow(data_agg) == 0) {
     stop("❌ Aucune donnée agrégée trouvée : vérifiez que les valeurs ne sont pas toutes NA, et que la variable existe bien.")
   }
-  
-  
+
+
   # --- Echelle automatique ---
   if (is.null(echelle)) {
     max_val <- max(data_agg$Valeurs, na.rm = TRUE)
     echelle <- ceiling(max_val * 1.1)
   }
-  
+
   if (is.null(titre)) titre <- paste("Heatmap -", variable)
-  
+
   # --- Graphique ---
   p <- ggplot(data_agg, aes(x = plot_x, y = plot_y, fill = Valeurs)) +
     geom_tile(color = "white", size = 0.5) +
@@ -482,9 +486,83 @@ plot_xpheat <- function(data, titre = NULL, echelle = NULL) {
       panel.grid.major = element_blank(),
       panel.background = element_rect(fill = "white", color = NA)
     )
-  
+
   return(p)
 }
+
+
+#' extract experimental traitement code from plot_id
+#'
+#' @description
+#' This function remove the block code from a vector of class character.
+#' It works well when block code are letters and experimental treatment code are numbers or vice versa.
+#' TNT are directly recognized as TNT
+#' @param pid a vector of character
+#' @param blocks a vector of block codes (could be a pb if blocks code are a mix of letters and numbers...)
+#' @param separator a character that separate block code from the other part of the string, for example "_"
+#'
+#' @returns the pid vector without blocks codes
+#' @export
+#'
+#' @examples
+#'
+#' blocks=c("A","B","C","D")
+#' pid=c("1A","1B","TNT3","2A","2D")
+#' remove_block_code(pid=pid,blocks=blocks)
+remove_block_code <- function(pid,blocks,separator=NULL) {
+  # empty results vector with the same length as pid
+  xp_trt_code <- vector(length = length(pid))
+  # remove leading or trailing whitespace in case of
+  pid <- trimws(pid)
+  # identify all "TNT" in pid
+  select_TNT <- grepl("^TNT", pid)
+  # if element contains TNT, TNT is expected in the result vector
+  xp_trt_code[select_TNT] <- "TNT"
+  # f element does NOT contains, remove the block code
+  xp_trt_code[!select_TNT] <- gsub(paste0("[",paste(blocks,collapse = ","),"]"), "", pid[!select_TNT])
+  # remove the separator
+  if (!is.null(separator)) {
+    xp_trt_code[!select_TNT] <- gsub(separator, "", xp_trt_code[!select_TNT])
+  }
+  return(xp_trt_code)
+}
+
+
+#' calcuate frequency in percent of values >0from a numeric vector
+#'
+#' @param vecteur
+#'
+#' @returns a numeric value of frequency, in percent
+#' @export
+#'
+#' @examples
+#' vec <- c(1, 2, 3, 0, 5, 6, 0)
+#' frequency(vec)
+frequency <- function(vecteur) {
+  # Check if the input is a numeric vector
+  if (!is.numeric(vecteur)) {
+    stop("Input must be a numeric vector.")
+  }
+  # Calculate the frequency of values greater than zero
+  freq <- length(vecteur[vecteur > 0]) * 100 / length(vecteur)
+  return(freq)
+}
+
+#' calcul efficacy
+#'
+#' @param value numeric value
+#' @param value_tnt numeric value of TNT
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+efficacy <- function(value,value_tnt)
+{
+  eff <- 100-((value*100/value_tnt))
+  return(eff)
+}
+
 
 #' Barplot résumé pour une expérimentation
 #'
@@ -498,32 +576,38 @@ plot_xpheat <- function(data, titre = NULL, echelle = NULL) {
 #' @param couleur_bars Couleur de remplissage des barres.
 #' @param bar_width Largeur des barres.
 #'
-#' @return Un graphique en barre 
+#' @return Un graphique en barre
 #' @export
 #'
 #' @import ggplot2
 #' @import dplyr
-#' 
+#'
 #' @examples
 #' # Exemple d'utilisation
 #' plot_xpbar(my_data)
-#'
+#
+# AJOUTER VARIABLES EN ENTREE, AVEC POSSIBILITE DE METTRE UNE OU DEUX VARIABLES
+# PARAM OPTION POUR COLORER LA BORDURE DU TNT EN ROUGE
+# IL FAUT QUE DANS DATA IL Y AIT UNE VARIABLE GROUPE : MODALITE PAR EXEMPLE = PARAM ENTREE
+# EST-CE QUE DATA EN ENTREE NE SERAIT PAS DEJA UN DF SUMMARY ? -> NON MAIS PREVOIR DE CHOISIR LA STAT (MEAN, MEDIAN, SUM...)
+# TYPE = VARIABLE...PAS CLAIR
+# SORTIR FONCTION SPLIT ID ET SI POSSIBLE LA RENDRE PLUS GENERIQUE -> voir remove_block_code
 plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = NULL, echelle = NULL, couleur_bars = "#00AB50", bar_width = 0.7) {
   library(ggplot2)
   library(dplyr)
-  
+
   type <- match.arg(type)
-  
+
   if (!"plot_id" %in% names(data)) {
     stop("La colonne 'plot_id' est manquante dans vos données.")
   }
-  
+
   data$plot_id <- trimws(data$plot_id)
-  
+
   # --- Trouver la bonne variable parmi les variables autorisées ---
   known_vars <- c("PM_LEAF_PC", "PM_BER_PC", "UN_LEAF_PC", "UN_BER_PC")
   candidate_vars <- intersect(known_vars, names(data))
-  
+
   if (length(candidate_vars) == 0) {
     stop("Aucune variable valide (_PC) n'a été trouvée dans vos données.")
   }
@@ -531,9 +615,9 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
     message("Plusieurs variables trouvées : ", paste(candidate_vars, collapse = ", "))
     message("La première variable détectée est utilisée : ", candidate_vars[1])
   }
-  
+
   variable <- candidate_vars[1]  # Sélection automatique
-  
+
   # --- Séparer plot_id ---
   split_plot_id <- function(pid) {
     if (grepl("^TNT", pid)) {
@@ -545,9 +629,9 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
     }
     list(xp_trt_code = xp_trt_code, block_id = block_id)
   }
-  
+
   temp_split <- lapply(data$plot_id, split_plot_id)
-  
+
   data <- data.frame(
     plot_id = data$plot_id,
     xp_trt_code = sapply(temp_split, `[[`, "xp_trt_code"),
@@ -557,17 +641,17 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
     Valeurs = as.numeric(data[[variable]]),
     stringsAsFactors = FALSE
   )
-  
+
   # --- Créer Frequence et Intensite ---
   data_fq <- data
   data_fq$Type <- "Frequence"
   data_fq$Valeurs <- ifelse(data_fq$Valeurs > 0, 100, 0)
-  
+
   data_int <- data
   data_int$Type <- "Intensite"
-  
+
   data_all <- bind_rows(data_fq, data_int)
-  
+
   Resume <- data_all %>%
     group_by(xp_trt_code, Type) %>%
     summarise(
@@ -575,7 +659,7 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
       sd_resultat = sd(Valeurs, na.rm = TRUE),
       .groups = "drop"
     )
-  
+
   if (type != "Both") {
     data_plot <- Resume %>% filter(Type == type)
     fill_color <- couleur_bars
@@ -583,18 +667,18 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
     data_plot <- Resume
     fill_color <- c("Frequence" = "#00AB50", "Intensite" = "#9966CC")
   }
-  
+
   # --- Calcul automatique échelle si non spécifiée ---
   if (is.null(echelle)) {
     max_val <- max(data_plot$mean_resultat + data_plot$sd_resultat, na.rm = TRUE)
     echelle <- ceiling(max_val * 1.1)  # un peu de marge au-dessus
   }
-  
+
   if (is.null(titre)) titre <- paste("Graphique -", variable)
-  
+
   # Préparer la couleur des contours
   data_plot$border_color <- ifelse(data_plot$xp_trt_code == "TNT", "red", "grey30")
-  
+
   #Création du graphique
   p <- ggplot(data_plot, aes(x = xp_trt_code, y = mean_resultat, fill = Type)) +
     geom_bar(aes(color = border_color), stat = "identity", position = position_dodge(width = bar_width), width = bar_width, linewidth = 1) +
@@ -603,7 +687,7 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
       aes(ymin = mean_resultat - sd_resultat, ymax = mean_resultat + sd_resultat),
       width = 0.2, position = position_dodge(width = bar_width)
     ) +
-    geom_text(aes(label = round(mean_resultat, 1)), 
+    geom_text(aes(label = round(mean_resultat, 1)),
               vjust = -0.5, size = 4, color = "black", position = position_dodge(width = bar_width)) +
     labs(
       title = titre,
@@ -620,9 +704,139 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
       axis.text.x = element_text(angle = 45, hjust = 1),
       legend.position = if (type == "Both") "top" else "none"
     )
-  
+
   return(p)
 }
+
+
+### preparation des donness
+
+#' Title
+#'
+#' @param data a dataframe to resume
+#' @param var_col character, the colname of the variable to plot
+#' @param group_col the colname of the group
+#' @param funs statistic to plot, a vector of one or two statistic. by default c("mean","frequency")
+#'
+#' @returns a dataframe ready for plotting
+#' @export
+#'
+#' @examples
+resume_data <- function(data, var_col, group_cols,
+                        funs = list(intensite=mean,frequence=frequency)) {
+  # convert column argument to symbol
+  var <- dplyr::ensym(var_col)
+  group_syms <- dplyr::syms(group_cols)
+
+  # Determine the name for the new column
+  new_col_name <- if ("type" %in% colnames(data)) "type2" else "type"
+
+  data_resume <- data.frame()
+  for (i in 1:length(funs))
+  {
+    if (identical(funs[[i]], base::mean)) {
+      resume <- data %>%
+        dplyr::group_by(!!!group_syms) %>%
+        dplyr::summarise(
+          lower.CL = mean({{ var }}, na.rm = TRUE) - qt(0.975, df = n() - 1) * sd({{ var }}, na.rm = TRUE) / sqrt(n()),
+          upper.CL = mean({{ var }}, na.rm = TRUE) + qt(0.975, df = n() - 1) * sd({{ var }}, na.rm = TRUE) / sqrt(n()),
+          value = mean({{ var }}, na.rm = TRUE), # we need to do that after lower.CL and upper.CL calculation, else value = var
+          .groups = "drop"
+        ) %>%
+        dplyr::mutate(!!new_col_name := !!names(funs)[i])
+    } else {
+      resume <- data %>%
+        dplyr::group_by(!!!group_syms) %>%
+        dplyr::summarise(value = funs[[i]]({{ var }}), .groups = "drop") %>%
+        dplyr::mutate(!!new_col_name := !!names(funs)[i])
+    }
+    data_resume <- dplyr::bind_rows(data_resume,resume)
+  }
+  return(data_resume)
+} #end function
+
+###### Version 2
+
+#' Barplot résumé pour une expérimentation
+#'
+#' @description
+#' Cette fonction génère automatiquement un graphique en barres à partir de données d'observations ou expérimentales.
+#'
+#' @param data2plot a dataframe, the first col is used for x axis, col "value" for y axis and col "type" for fill.
+#' @param echelle Limite supérieure de l'axe y. Si NULL, ajustement automatique.
+#' @param couleur_bars Couleur de remplissage des barres.
+#' @param bar_width bar width
+#' @param option_border_tnt if true, the border color is set as red for TNT
+#' @param ... other parameters for labs (title, x, y,fill)
+#'
+#' @return a barplot
+#' @export
+#'
+#' @import ggplot2
+#' @import dplyr
+#'
+#' @examples
+#' # Exemple d'utilisation
+#' plot_xpbar(my_data)
+#
+plot_xpbar2 <- function(data2plot,
+                        echelle = NULL,
+                        couleur_bars = c("#00AB50", "#9966CC"),
+                        bar_width = 0.7,
+                        option_border_tnt = TRUE,
+                        ...) {
+  library(ggplot2)
+  library(dplyr)
+
+  ## ?
+  #type <- match.arg(type)
+
+  # set col for x axis
+  xcol = sym(colnames(data2plot)[1])
+
+  # Préparer la couleur des contours
+  data2plot$border_color <- "grey30"
+  if(option_border_tnt) {
+  data2plot$border_color <- ifelse(data2plot[,paste(xcol)] == "TNT", "red", "grey30")}
+
+  # --- Calcul automatique échelle si non spécifiée ---
+  if (is.null(echelle)) {
+    max_val <- max(data2plot$value, na.rm = TRUE)
+    echelle <- ceiling(max_val * 1.1)  # un peu de marge au-dessus
+  }
+
+  p <- ggplot(data2plot, aes(x = !!xcol,
+                             y = value, fill = type)) +
+    geom_bar(color = data2plot$border_color,
+             stat = "identity",
+             position = position_dodge(width = bar_width),
+             width = bar_width, linewidth = 0.5) +
+    #geom_errorbar(
+    #  data = data_plot %>% filter(sd_resultat > 0),
+    #  aes(ymin = mean_resultat - sd_resultat, ymax = mean_resultat + sd_resultat),
+    #  width = 0.2, position = position_dodge(width = bar_width)
+    #) +
+    geom_text(aes(label = round(value, 1)),
+              vjust = -0.5, size = 4, color = "black", position = position_dodge(width = bar_width)) +
+    labs(...) +
+    ylim(0, echelle) +
+    scale_fill_manual(values = couleur_bars) +
+    scale_color_identity() +    # <<<<<< très important
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 20, hjust = 0.5),
+      plot.caption = element_text(size = 10),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = if (length(unique(data2plot$type))>1) "right" else "none"
+    )
+
+  return(p)
+}
+
+
+
+
+
 
 #' Boxplot résumé pour une expérimentation
 #'
@@ -645,16 +859,16 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
 plot_xpbox <- function(data, titre = NULL, echelle = NULL) {
   library(ggplot2)
   library(dplyr)
-  
+
   if (!"plot_id" %in% names(data)) {
     stop("La colonne 'plot_id' est manquante dans vos données.")
   }
-  
+
   data$plot_id <- trimws(data$plot_id)
-  
+
   known_vars <- c("PM_LEAF_PC", "PM_BER_PC", "UN_LEAF_PC", "UN_BER_PC")
   candidate_vars <- intersect(known_vars, names(data))
-  
+
   if (length(candidate_vars) == 0) {
     stop("Aucune variable _PC valide trouvée dans les données.")
   }
@@ -662,9 +876,9 @@ plot_xpbox <- function(data, titre = NULL, echelle = NULL) {
     message("Plusieurs variables _PC trouvées : ", paste(candidate_vars, collapse = ", "))
     message("La première variable détectée est utilisée : ", candidate_vars[1])
   }
-  
+
   variable <- candidate_vars[1]
-  
+
   # Séparer plot_id
   split_plot_id <- function(pid) {
     if (grepl("^TNT", pid)) {
@@ -676,9 +890,9 @@ plot_xpbox <- function(data, titre = NULL, echelle = NULL) {
     }
     list(xp_trt_code = xp_trt_code, block_id = block_id)
   }
-  
+
   temp_split <- lapply(data$plot_id, split_plot_id)
-  
+
   data <- data.frame(
     plot_id = data$plot_id,
     xp_trt_code = sapply(temp_split, `[[`, "xp_trt_code"),
@@ -688,20 +902,20 @@ plot_xpbox <- function(data, titre = NULL, echelle = NULL) {
     Valeurs = as.numeric(data[[variable]]),
     stringsAsFactors = FALSE
   )
-  
+
   # Filtrer sur Intensité uniquement
   data$Type <- "Intensite"
-  
+
   # Calcul automatique échelle
   if (is.null(echelle)) {
     max_val <- max(data$Valeurs, na.rm = TRUE)
     echelle <- ceiling(max_val * 1.1)
   }
-  
+
   if (is.null(titre)) {
     titre <- paste("Boxplot -", variable)
   }
-  
+
   p <- ggplot(data, aes(x = xp_trt_code, y = Valeurs)) +
     geom_boxplot(
       aes(fill = xp_trt_code),
@@ -723,7 +937,7 @@ plot_xpbox <- function(data, titre = NULL, echelle = NULL) {
     ) +
     theme_minimal(base_size = 14) +
     theme(legend.position = "none")
-  
+
   return(p)
 }
 
@@ -788,6 +1002,18 @@ df_complet <- mydata$prepare_final_data()
 View(df_complet)
 
 my_data1 <- read.csv2("misc/teissonniere_dataF1_2024.csv", sep = ";")
+
+## add trt_code
+my_data1$trt_code <- remove_block_code(my_data1$plot_id,blocks = c("A","B","C","D"))
+
+data2 <- resume_data(my_data1, var_col = "PM_LEAF_PC", group_cols = c("plot_id","trt_code"),funs=list(intensité=mean,fréquence=frequency))
+data3 <- resume_data(data2,var_col = "value",group_cols=c("trt_code","type"),funs=list(moyenne=mean))
+
+plot_xpbar2(data2plot=data3,title="My graph",y="Pourcentage %",x="Modalité",fill="Variable")
+
+plot_xpbar2(data2plot=data3 %>% filter(type=="intensité"),title="My graph",y="Pourcentage %",x="Modalité",fill="Variable")
+
+
 plot_xpbar(my_data1,"Frequence")
 plot_xpbox(my_data1,echelle = 15)
 plot_xpheat(df_complet)
