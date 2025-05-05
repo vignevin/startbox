@@ -547,6 +547,29 @@ frequency <- function(vecteur) {
   freq <- length(vecteur[vecteur > 0]) * 100 / length(vecteur)
   return(freq)
 }
+# TO DO check if NA values in vecteur ?
+
+#' calcuate intensity (mean of value)
+#'
+#' @param vecteur
+#'
+#' @returns a numeric value of intensity
+#' @export
+#'
+#' @examples
+#' vec <- c(100, 20, 30, 0, 5, 0, 0)
+#' intensity(vec)
+intensity <- function(vecteur) {
+  # Check if the input is a numeric vector
+  if (!is.numeric(vecteur)) {
+    stop("Input must be a numeric vector.")
+  }
+  # Calculate intensity
+  int <- mean(vecteur, na.rm=T)
+  return(int)
+}
+# TO DO check that values in vecteur are between 0 and 100 ?
+
 
 #' calcul efficacy
 #'
@@ -715,7 +738,7 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
 #'
 #' @param data a dataframe to resume
 #' @param var_col character, the colname of the variable to plot
-#' @param group_col the colname of the group
+#' @param group_cols the colname of the group
 #' @param funs statistic to plot, a vector of one or two statistic. by default c("mean","frequency")
 #'
 #' @returns a dataframe ready for plotting
@@ -724,12 +747,13 @@ plot_xpbar <- function(data, type = c("Both", "Intensite", "Frequence"),titre = 
 #' @examples
 resume_data <- function(data, var_col, group_cols,
                         funs = list(intensite=mean,frequence=frequency)) {
+
+  # flag_variable
+  flag_variable <- "variable" %in% colnames(data)
+
   # convert column argument to symbol
   var <- dplyr::ensym(var_col)
-  group_syms <- dplyr::syms(group_cols)
-
-  # Determine the name for the new column
-  new_col_name <- if ("type" %in% colnames(data)) "type2" else "type"
+  if(flag_variable) group_syms <- dplyr::syms(c(group_cols,"variable")) else group_syms <- dplyr::syms(group_cols)
 
   data_resume <- data.frame()
   for (i in 1:length(funs))
@@ -743,14 +767,15 @@ resume_data <- function(data, var_col, group_cols,
           value = mean({{ var }}, na.rm = TRUE), # we need to do that after lower.CL and upper.CL calculation, else value = var
           .groups = "drop"
         ) %>%
-        dplyr::mutate(!!new_col_name := !!names(funs)[i])
+        dplyr::mutate(type = if ("type" %in% colnames(data)) paste(type, !!names(funs)[i]) else !!names(funs)[i])
     } else {
       resume <- data %>%
         dplyr::group_by(!!!group_syms) %>%
         dplyr::summarise(value = funs[[i]]({{ var }}), .groups = "drop") %>%
-        dplyr::mutate(!!new_col_name := !!names(funs)[i])
+        dplyr::mutate(type = if ("type" %in% colnames(data)) paste(type, !!names(funs)[i]) else !!names(funs)[i])
     }
     data_resume <- dplyr::bind_rows(data_resume,resume)
+    if(!flag_variable) data_resume$variable = var_col
   }
   return(data_resume)
 } #end function
@@ -1011,7 +1036,7 @@ data3 <- resume_data(data2,var_col = "value",group_cols=c("trt_code","type"),fun
 
 plot_xpbar2(data2plot=data3,title="My graph",y="Pourcentage %",x="Modalité",fill="Variable")
 
-plot_xpbar2(data2plot=data3 %>% filter(type=="intensité"),title="My graph",y="Pourcentage %",x="Modalité",fill="Variable")
+plot_xpbar2(data2plot=data3 %>% filter(type=="intensité moyenne"),title="My graph",y="Pourcentage %",x="Modalité",fill="Variable")
 
 
 plot_xpbar(my_data1,"Frequence")
