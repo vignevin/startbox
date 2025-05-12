@@ -22,9 +22,6 @@
 #' @importFrom stats aov kruskal.test aggregate as.formula residuals shapiro.test bartlett.test
 #' @importFrom agricolae SNK.test kruskal
 #'
-#' @export
-#' Perform ANOVA or Kruskal-Wallis test with group comparison
-#'
 #' @param data A data.frame with at least a column of values and a grouping factor.
 #' @param value_col Column name (string) with numeric values.
 #' @param group_col Column name (string) with grouping (default: "xp_trt_code").
@@ -41,31 +38,57 @@ test_stats <- function(data, value_col = "PM_LEAF_PC", group_col = "xp_trt_code"
                        force_test = NULL,
                        verbose = TRUE) {
   
+  # Vérification
   if (!(value_col %in% names(data)) || !(group_col %in% names(data))) {
     stop("❌ Required columns are missing.")
   }
   
   df <- data[!is.na(data[[value_col]]) & !is.na(data[[group_col]]), ]
-  
   if (nrow(df) == 0 || length(unique(df[[group_col]])) <= 1) {
     if (verbose) message("⚠️ Not enough data or only one group.")
-    return(list(test = "Non applicable", p_value = NA, groupes = data.frame(groups = character(0))))
+    return(list(test = "Non applicable", p_value = NA, groupes = data.frame(), message = "Not enough data"))
   }
   
   df[[group_col]] <- as.factor(df[[group_col]])
-  formula <- as.formula(paste(value_col, "~", group_col))
+  formula <- stats::as.formula(paste(value_col, "~", group_col))
+  
+  # Préparation des valeurs par défaut
+  test_type <- NA
+  pval <- NA
+  groupes <- data.frame()
+  justification <- ""
   
   if (is.null(force_test)) {
     model <- stats::aov(formula, data = df)
-    p_norm <- check_normality(model)
-    p_var <- check_heteroscedasticity(model)
-    if (verbose) message("🔍 Shapiro p =", round(p_norm, 3), " | Bartlett p =", round(p_var, 3))
-  }
-  
-  if (!is.null(force_test) && force_test == "anova" ||
-      is.null(force_test) && p_norm > alpha && p_var > alpha) {
+    p_norm <- as.character(check_normality(model))
+    p_var <- as.character(check_heteroscedasticity(model))
+    
+    if (verbose) message("🔍 Shapiro p =", round(p_norm, 3), "| Bartlett p =", round(p_var, 3))
+    
+    if (p_norm > alpha && p_var > alpha) {
+      test_type <- "Anova"
+      justification <- paste("✅ ANOVA used (Shapiro p =", round(p_norm, 3),
+                             ", Bartlett p =", round(p_var, 3), ") - assumptions respected.")
+    } else {
+      test_type <- "Kruskal"
+      justification <- paste("🔄 Kruskal-Wallis used (Shapiro p =", round(p_norm, 3),
+                             ", Bartlett p =", round(p_var, 3), ") - assumptions not met.")
+    }
+    
+  } else if (tolower(force_test) == "anova") {
     test_type <- "Anova"
     model <- stats::aov(formula, data = df)
+    justification <- "⚠️ ANOVA forced by user."
+  } else if (tolower(force_test) == "kruskal") {
+    test_type <- "Kruskal"
+    justification <- "⚠️ Kruskal-Wallis forced by user."
+  } else {
+    stop("❌ Invalid value for force_test. Use 'anova' or 'kruskal'.")
+  }
+  
+  # Calcul du test global et des groupes
+  if (test_type == "Anova") {
+    model <- if (exists("model")) model else stats::aov(formula, data = df)
     pval <- summary(model)[[1]][["Pr(>F)"]][1]
     
     groupes <- switch(
@@ -75,22 +98,27 @@ test_stats <- function(data, value_col = "PM_LEAF_PC", group_col = "xp_trt_code"
       stop("❌ Invalid group_method for ANOVA.")
     )
     
-  } else {
-    test_type <- "Kruskal"
+  } else if (test_type == "Kruskal") {
     pval <- stats::kruskal.test(formula, data = df)$p.value
     groupes <- agricolae::kruskal(df[[value_col]], df[[group_col]], group = TRUE)$groups
   }
   
+  # Construction des résultats
   groupes$modality <- rownames(groupes)
   moyennes <- stats::aggregate(df[[value_col]], by = list(df[[group_col]]), FUN = mean)
   names(moyennes) <- c("modality", "mean")
   
-  groupes <- merge(groupes, moyennes, by = "modality")
+  groupes <- merge(groupes, moyennes, by = "modality", all.x = TRUE)
   groupes <- groupes[order(groupes$groups, groupes$mean), ]
   rownames(groupes) <- groupes$modality
   groupes <- groupes[, c("modality", "mean", "groups")]
   
-  return(list(test = test_type, p_value = pval, groupes = groupes))
+  return(list(
+    test = test_type,
+    p_value = pval,
+    groupes = groupes,
+    message = justification
+  ))
 }
 
 # Test de normalité des résidus (Shapiro-Wilk)
@@ -104,25 +132,3 @@ check_heteroscedasticity <- function(model) {
   stats::bartlett.test(data[[1]] ~ data[[2]])$p.value
 }
 
-
-# Exemple de jeu de données simulé
-df_test <- data.frame(
-  xp_trt_code = rep(c("T1", "T2", "T3", "TNT"), each = 10),
-  PM_LEAF_PC = c(
-    rnorm(10, mean = 20, sd = 5),
-    rnorm(10, mean = 25, sd = 5),
-    rnorm(10, mean = 35, sd = 5),
-    rnorm(10, mean = 5, sd = 2)
-  )
-)
-
-# Appel de la fonction avec les paramètres par défaut
-resultats <- test_stats(df_test, value_col = "PM_LEAF_PC")
-
-# Afficher les résultats
-print(resultats$test)
-print(resultats$p_value)
-print(resultats$groupes)
-
-
-test_stats(df_test, value_col = "PM_LEAF_PC", verbose = TRUE)
