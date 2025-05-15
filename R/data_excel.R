@@ -175,5 +175,124 @@ get_template_excel <- function(destination_path=NULL) {
   }
 }
 
+#' Import "data_*" sheets from an Excel file into a `user_data` object
+#'
+#' @param self The `user_data` R6 object
+#' @param filepath Path to the Excel file to import
+#'
+#' @return Updates `self$obs_data` with the newly imported sheets
+#' @export
+import_data_sheets <- function(self, filepath) {
+  if (!file.exists(filepath)) {
+    stop("❌ File not found: ", filepath)
+  }
+  
+  wb <- openxlsx2::wb_load(filepath)
+  sheets <- wb$sheet_names
+  
+  data_sheets <- sheets[grepl("^data_", sheets)]
+  if (length(data_sheets) == 0) {
+    message("ℹ️ No sheets starting with 'data_' found in file.")
+    return(invisible(NULL))
+  }
+  
+  for (sheet in data_sheets) {
+    df <- tryCatch({
+      openxlsx2::wb_to_df(wb, sheet = sheet)
+    }, error = function(e) {
+      warning(paste("⚠️ Could not read sheet:", sheet))
+      return(NULL)
+    })
+    
+    if (is.null(df)) next
+    
+    # Nettoyage du nom : on supprime les caractères interdits (par sécurité)
+    safe_sheet <- gsub("[:\\\\/*?\\[\\]]", "_", sheet)
+    
+    # Ajoute une mention si la feuille existait déjà
+    if (safe_sheet %in% names(self$obs_data)) {
+      message("🔁 Sheet already loaded: ", safe_sheet, " → replaced.")
+    } else {
+      message("✅ New sheet loaded: ", safe_sheet)
+    }
+    
+    self$obs_data[[safe_sheet]] <- df
+  }
+  
+  invisible(self$obs_data)
+}
+
+#' Export observation sheets into a new Excel file version
+#'
+#' @description
+#' This function exports all observation data (`obs_data`) from a `user_data` object into a new Excel file.
+#' It preserves the original sheets and replaces/adds sheets named "data_XXX" accordingly.
+#' The new file is saved in the Downloads folder with an incremented version name.
+#'
+#' @param self The `user_data` R6 object
+#'
+#' @return The full path of the exported Excel file (invisible)
+#' @export
+export_data_sheets <- function(self) {
+  if (is.null(self$excel_data_trial) || !file.exists(self$excel_data_trial)) {
+    stop("❌ No Excel file loaded in user_data.")
+  }
+  
+  wb <- openxlsx2::wb_load(self$excel_data_trial)
+  
+  for (i in seq_along(self$obs_data)) {
+    original_name <- names(self$obs_data)[i]
+    df <- self$obs_data[[i]]
+    
+    sheetname <- if (grepl("^data_", original_name)) {
+      original_name
+    } else {
+      paste0("data_", tools::file_path_sans_ext(basename(original_name)))
+    }
+    
+    if (sheetname %in% wb$sheet_names) {
+      message("⚠️ Sheet already exists: ", sheetname, " → skipped.")
+      next
+    }
+    
+    wb$add_worksheet(sheetname)
+    wb$add_data_table(sheet = sheetname, x = df)
+    message("✅ Sheet added: ", sheetname)
+  }
+  
+  # Horodatage au format 2025-05-15_16h22
+  timestamp <- format(Sys.time(), "%Y-%m-%d_%Hh%M")
+  
+  base_path <- normalizePath(self$excel_data_trial)
+  base_file <- basename(base_path)
+  name_no_ext <- tools::file_path_sans_ext(base_file)
+  ext <- tools::file_ext(base_file)
+  output_dir <- file.path(Sys.getenv("USERPROFILE"), "Downloads")
+  
+  new_filename <- file.path(output_dir, paste0(name_no_ext, "_", timestamp, ".", ext))
+  
+  wb$save(new_filename)
+  message("✅ New Excel file saved at: ", new_filename)
+  
+  invisible(new_filename)
+}
+
+#' Wrapper to import and export observation data in Excel
+#'
+#' This function first imports all `data_*` sheets from the Excel file into the `obs_data`
+#' attribute of the R6 object, then exports them into a new Excel file with versioning.
+#'
+#' @param self A `user_data` object (R6 class) containing the path to the Excel file.
+#'
+#' @return Invisibly returns the path to the new Excel file generated with additional data sheets.
+#' @export
+wrapper_data <- function(self) {
+  # Étape 1 : importer les feuilles data_* (met à jour self$obs_data)
+  import_data_sheets(self, self$excel_data_trial)
+  
+  # Étape 2 : exporter toutes les feuilles data_* dans une version du fichier
+  export_data_sheets(self)
+}
+
 
 
