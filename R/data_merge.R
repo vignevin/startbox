@@ -8,11 +8,11 @@
 #' @export
 prepare_final_data <- function(self) {
   if (is.null(self$metadata$plot_desc) || is.null(self$metadata$moda_desc)) {
-    message("❌ plot_desc or moda_desc missing.")
+    message("plot_desc or moda_desc missing.")
     return(NULL)
   }
   
-  # Step 1 — Join plot + modality
+  # Step 1. Join plot and modality
   self$metadata$plot_desc$factor_level_code <- as.character(self$metadata$plot_desc$factor_level_code)
   self$metadata$moda_desc$xp_trt_code <- as.character(self$metadata$moda_desc$xp_trt_code)
   
@@ -25,14 +25,14 @@ prepare_final_data <- function(self) {
   # Explicitly add xp_trt_code
   df_plot_moda$xp_trt_code <- df_plot_moda$factor_level_code
   
-  # Step 2 — Add observation data
+  # Step 2. Add observation data
   if (length(self$obs_data) == 0) {
-    message("⚠️ No observation data to join. Returning only plot + modality.")
+    message("No observation data to join. Returning only plot + modality.")
     return(df_plot_moda)
   }
   
   if (is.null(self$combined_data)) {
-    message("❌ Combined data is not ready yet. Call combine_data_obs() first.")
+    message("Combined data is not ready yet. Call combine_data_obs() first.")
     return(NULL)
   }
   
@@ -86,7 +86,7 @@ merge_with_existing_data <- function(wb, combined) {
       if (col %in% names(combined)) combined[[col]] <- as.character(combined[[col]])
     }
     
-    # *_PC columns → numeric
+    # *_PC columns to numeric
     pc_cols <- grep("_PC$", names(old_data), value = TRUE)
     old_data[pc_cols] <- lapply(old_data[pc_cols], function(col) as.numeric(as.character(col)))
     
@@ -98,7 +98,7 @@ merge_with_existing_data <- function(wb, combined) {
       # Files to update: those existing in both
       prov_names_to_update <- intersect(old_prov_files, new_prov_files)
       if (length(prov_names_to_update) > 0) {
-        message(paste0("🔁 Updating data for: ", paste(prov_names_to_update, collapse = ", ")))
+        message(paste0("Updating data for: ", paste(prov_names_to_update, collapse = ", ")))
         old_data <- old_data[!(old_data$prov_name %in% prov_names_to_update), ]
       }
     }
@@ -113,7 +113,7 @@ merge_with_existing_data <- function(wb, combined) {
   return(combined)
 }
 
-#' Harmonize plot_id format to match placette (e.g. 10A → A10)
+#' Harmonize plot_id format to match placette (e.g. 10A to A10)
 #' 
 #' @param pid vector of plot_id (character)
 #' 
@@ -128,7 +128,7 @@ harmonize_plot_id_format <- function(pid) {
   pid_clean <- ifelse(
     is_tnt,
     pid,
-    gsub("^([0-9]{1,2})([A-Z])$", "\\2\\1", pid)  # 10A → A10
+    gsub("^([0-9]{1,2})([A-Z])$", "\\2\\1", pid)
   )
   
   return(pid_clean)
