@@ -1,3 +1,5 @@
+#' @title Harmonize Column Types
+#'
 #' @description
 #' Harmonizes the types of columns in a dataframe according to a type mapping.
 #'
@@ -31,14 +33,14 @@ harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst
           test <- suppressWarnings(as.Date(original_dates, format = fmt))
           if (all(!is.na(test) | is.na(original_dates))) {
             df[[col]] <- test
-            message(paste("✅ Column", col, "converted with format", fmt))
+            message(paste("Column", col, "converted with format", fmt))
             success <- TRUE
             break
           }
         }
         
         if (!success) {
-          warning(paste("❌ Could not convert column", col, "to Date. It remains as text."))
+          warning(paste("Could not convert column", col, "to Date. It remains as text."))
           df[[col]] <- as.character(original_dates)
         }
         
@@ -58,6 +60,8 @@ harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst
   return(df)
 }
 
+#' @title Harmonize All Observation Data Tables
+#'
 #' @description
 #' Harmonizes all observation datasets using harmonize_column_types().
 #'
@@ -68,10 +72,6 @@ harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst
 harmonize_all_obs_data <- function(obs_data) {
   lapply(obs_data, harmonize_column_types)
 }
-
-
-
-
 
 
 
