@@ -56,7 +56,7 @@ usethis::use_testthat()
 usethis::use_readme_rmd()
 
 ## creer une vignette
-#usethis::use_vignette("startbox")
+usethis::use_vignette("startbox.qmd")
 
 
 ### dependencies
@@ -71,5 +71,5 @@ usethis::use_package("agricolae", min_version = "1.3-7")
 
 
 devtools::document()
-#devtools::build_rmd("vignettes/quick_start_guide.Rmd")
+devtools::build_rmd("vignettes/startbox.qmd")
 devtools::check()

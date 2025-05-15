@@ -1,0 +1,67 @@
+---
+title: "startbox"
+vignette: >
+  %\VignetteIndexEntry{startbox}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+# Introduction
+
+Le package {startbox} est dédié à la gestion et à l'analyse des données d'essais en protection phytosanitaire, en particulier pour la vigne.
+
+```{r}
+#| label: setup
+library(startbox)
+```
+
+# Manipulation des données
+
+## Importer un fichier Excel standard
+
+Le package fonctionne avec un fichier Excel standard, qui stocke les données descriptives de l'essai (les modalités mises en place, les caractéristiques de la parcelles, le plan d'expérience) et les données observées. 
+
+Un modèle de fichier standard est accessible avec la fonction get_template_excel(). 
+
+```{r}
+#| label: get_template_excel
+
+get_template_excel()
+
+```
+
+
+
+
+prévoir ici 
+- de créer un objet user_data (avec ou sans fichier excel en entrée)
+  - si fichier excel : on ajoute les obs, les métadata placettes, moda ...
+  - si non; user_data est vide
+
+-> Une fonction qui crée cet objet data_user (=initialize)
+
+-> une ou deux fonctions importent les données du fichier Excel pour mettre à jour data_user
+    - metadata -> existe déjà
+    - data -> à créer (les noms des feuilles doivent commencer par convention par "data_")
+(utile uniquement si fichier Excel fournit par l'utilisateur)
+(ajouter fonction check pour vérifier la conformité des données)
+
+-> une fonction wrapper qui fait tout à la fois
+
+
+revoir les interactions avec Excel : startbox ne peut et ne doit qu'ajouter des données. donc soit :
+- on prend le fichier excel utilisateur, et on ajouter les (nouvelles) données d'observations 
+- si le fichier excel n'existe pas, on prend le modèle et on ajoute les données observation
+
+-> créer une fonction update_excel() qui ajoute les données manquantes au fichier de base
+
+
+```{r load_datafile}
+
+
+
+```

@@ -4,3 +4,5 @@
 ^dev_history\.R$
 ^misc$
 ^README\.Rmd$
+^vignettes/\.quarto$
+^vignettes/*_files$
