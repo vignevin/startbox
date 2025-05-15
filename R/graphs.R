@@ -7,7 +7,7 @@
 #' @param data A dataframe containing at least 'plot_x', 'plot_y', *_PC variable (e.g., PM_LEAF_PC) and a column plot_id
 #' @param titre (optional) Title of the plot. If NULL, a default title based on the variable is used.
 #' @param echelle (optional) Maximum value for the fill color scale. If NULL, an automatic scale is calculated.
-#' @param orientation (optional) rotation of heatmap c(“vertical”, “horizontal”) default vertical
+#' @param orientation (optional) rotation of heatmap c(vertical, horizontal) default vertical
 #' @param caption A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".
 #' 
 #' @return A ggplot2 heatmap object.
@@ -20,9 +20,6 @@
 #' @import ggplot2
 #' @import dplyr
 #'
-#' @examples
-#' df <- mydata$prepare_final_data()
-#' plot_xpheat(df)
 #' @export
 plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
                         orientation = c("vertical", "horizontal"),
@@ -32,28 +29,27 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
   
   orientation <- match.arg(orientation)
   
-  # Vérification colonnes
+  # Check columns
   required_cols <- c("plot_id", "plot_x", "plot_y", variable)
   missing <- setdiff(required_cols, names(data))
   if (length(missing) > 0) {
-    stop(paste("❌ Missing required column(s):", paste(missing, collapse = ", ")))
+    stop(paste("Missing required column(s):", paste(missing, collapse = ", ")))
   }
   
-  # Nettoyage des coordonnées
+  # Cleaning contact details
   data <- dplyr::mutate(data,
                         plot_x = as.numeric(plot_x),
                         plot_y = as.numeric(plot_y)) %>%
     dplyr::filter(!is.na(plot_x) & !is.na(plot_y))
   
-  # Agrégation
   data_agg <- dplyr::group_by(data, plot_id, plot_x, plot_y) %>%
     dplyr::summarise(Valeurs = mean(.data[[variable]], na.rm = TRUE), .groups = "drop")
   
   if (nrow(data_agg) == 0) {
-    stop("❌ No aggregated data found.")
+    stop("No aggregated data found.")
   }
   
-  # Gestion des résidus
+  # Waste management
   if (residus) {
     moyenne_globale <- mean(data_agg$Valeurs, na.rm = TRUE)
     data_agg <- dplyr::mutate(data_agg, Valeurs = Valeurs - moyenne_globale)
@@ -62,7 +58,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
     if (is.null(titre)) titre <- paste("Heatmap -", variable)
   }
   
-  # Échelle automatique
+  # Automatic scale
   if (is.null(echelle)) {
     max_abs <- max(abs(data_agg$Valeurs), na.rm = TRUE)
     echelle <- ceiling(max_abs * 1.1)
@@ -91,22 +87,22 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
     ggplot2::geom_text(ggplot2::aes(label = plot_id), color = "white", size = 4) +
     ggplot2::labs(
       title = titre,
-      fill = if (residus) "Résidus" else "Valeur (%)",
+      fill = if (residus) "Residues" else "Value (%)",
       caption = caption
     ) +
     {
       if (!is.null(fill) && length(fill) == 2 && !residus) {
         ggplot2::scale_fill_gradient(low = fill[1], high = fill[2],
                                      limits = c(0, echelle),
-                                     name = "Valeur Moyenne Intensité (%)")
+                                     name = "Average Intensity Value (%)")
       } else if (residus) {
         ggplot2::scale_fill_gradient2(low = "blue", mid = "white", high = "red",
                                       midpoint = 0, limits = c(-echelle, echelle),
-                                      name = "Résidu")
+                                      name = "Residues")
       } else {
         ggplot2::scale_fill_gradient(low = "yellow", high = "red",
                                      limits = c(0, echelle),
-                                     name = "Valeur Moyenne Intensité (%)")
+                                     name = "Average Intensity Value (%)")
       }
     } +
     axis_breaks +
@@ -126,14 +122,14 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
 
 
 
-#' Barplot résumé pour une expérimentation
+#' Barplot summary for an experiment
 #'
 #' @description
-#' Cette fonction génère automatiquement un graphique en barres à partir de données d'observations ou expérimentales.
+#This function automatically generates a bar graph from observation or experimental data.
 #'
-#' @param data2plot a dataframe, the first col is used for x axis, col "value" for y axis and col "type" for fill.
-#' @param echelle Limite supérieure de l'axe y. Si NULL, ajustement automatique.
-#' @param couleur_bars Couleur de remplissage des barres.
+#' @param data2plot a dataframe, the first col is used for x axis, col value for y axis and col type for fill.
+#' @param scale Upper limit of the y axis. If NULL, automatic adjustment.
+#' @param bar_colour Bar fill colour.
 #' @param bar_width bar width
 #' @param border_tnt if true, the border color is set as red for TNT
 #' @param ... other parameters for labs (title, x, y,fill)
@@ -159,7 +155,7 @@ plot_xpbar2 <- function(data2plot,
                         show_errorbar = TRUE,
                         ...) {
   
-  # Vérification que la colonne xcol existe
+# Check that the xcol column exists
   if (!xcol %in% names(data2plot)) {
     stop(paste("Column", xcol, "not found in data"))
   }
@@ -186,125 +182,125 @@ plot_xpbar2 <- function(data2plot,
       }
     )
   
-  # Calcul de l’échelle y
-  if (is.null(echelle)) {
+  # Calculation of scale y
+  if (is.null(scale)) {
     max_val <- max(data2plot$value, na.rm = TRUE)
-    echelle <- ceiling(max_val * 1.1)
+    scale <- ceiling(max_val * 1.1)
   }
   
-  # Création du graphique
+  # Create the graph
   p <- ggplot(data2plot, aes(x = !!xcol_sym, y = value, fill = type)) +
     geom_bar(
-      aes(color = border_color),
-      stat = "identity",
-      position = position_dodge(width = bar_width),
-      width = bar_width,
-      linewidth = 0.5
-    )
-  
-  # Ajout conditionnel des barres d'erreur
-  if (show_errorbar) {
-    p <- p + geom_errorbar(
-      data = filter(data2plot, !is.na(lower.CL) & !is.na(upper.CL)),
-      aes(ymin = lower.CL, ymax = upper.CL),
-      position = position_dodge(width = bar_width),
-      width = 0.2
-    )
-  }
-  
-  # Ajout des valeurs texte
-  p <- p +
-    geom_text(
-      aes(label = round(value, 1)),
-      vjust = -0.5, size = 4, color = "black",
-      position = position_dodge(width = bar_width)
-    ) +
-    labs(...) +
-    ylim(0, echelle) +
-    scale_fill_manual(values = couleur_bars) +
-    scale_color_identity() +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(size = 20, hjust = 0.5),
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.position = if (length(unique(data2plot$type)) > 1) "right" else "none"
-    )
+    aes(color = border_color),
+   stat = "identity",
+   position = position_dodge(width = bar_width),
+   width = bar_width,
+   linewidth = 0.5
+   )
+    
+    # Conditional addition of error bars
+   if (show_errorbar) {
+   p <- p + geom_errorbar(
+   data = filter(data2plot, !is.na(lower.CL) & !is.na(upper.CL)),
+   aes(ymin = lower.CL, ymax = upper.CL),
+   position = position_dodge(width = bar_width),
+   width = 0.2
+   )
+   }
+    
+    # Add text values
+   p <- p +
+   geom_text(
+   aes(label = round(value, 1)),
+   vjust = -0.5, size = 4, color = "black",
+   position = position_dodge(width = bar_width)
+   ) +
+   labs(...) +
+   ylim(0, scale) +
+   scale_fill_manual(values = couleur_bars) +
+   scale_color_identity() +
+   theme_minimal() +
+   theme(
+   plot.title = element_text(size = 20, hjust = 0.5),
+   axis.text.x = element_text(angle = 45, hjust = 1),
+   legend.position = if (length(unique(data2plot$type)) > 1) "right" else "none"
+   )
   
   return(p)
 }
 
 
-
-#' Boxplot résumé pour une expérimentation
+#' Boxplot summary for an experiment
 #'
 #' @description
-#' Cette fonction génère automatiquement un graphique en boîte à moustaches
-#' (boxplot) à partir de données expérimentales brutes (parcelle, observation, maladie).
+#' This function automatically generates a box plot
+
+#(boxplot) from raw experimental data (plot, observation, disease).
 #'
-#' @param data Données brutes contenant au moins plot_id et une variable "_PC".
-#' @param titre Titre principal du graphique (optionnel).
-#' @param echelle Limite supérieure de l'axe y (optionnel, sinon automatique).
+#' @param data Raw data containing at least plot_id and a "_PC" variable.
+#' @param titre Main title of the graph (optional).
+#' @param echelle Upper limit of the y-axis (optional, otherwise automatic).
 #' @param caption A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".
 #'
-#' @return Un objet `ggplot2`.
+#' @return A `ggplot2` object.
 #'
-#' @examples
-#' plot_xpbox(my_data)
 #' @export
 
-plot_xpbox <- function(data, titre = NULL, echelle = NULL, caption = "IFV+") {
+plot_xpbox <- function(data, titre = NULL, echelle = NULL, caption = "IFV+", show_dots = FALSE) {
   library(ggplot2)
   library(dplyr)
-  
+
   if (!"plot_id" %in% names(data)) {
-    stop("La colonne 'plot_id' est manquante dans vos données.")
+    stop("The column 'plot_id' is missing from your data.")
   }
-  
+
   data$plot_id <- trimws(data$plot_id)
-  
+
   known_vars <- c("PM_LEAF_PC", "PM_BER_PC", "UN_LEAF_PC", "UN_BER_PC")
   candidate_vars <- intersect(known_vars, names(data))
-  
+
   if (length(candidate_vars) == 0) {
-    stop("Aucune variable _PC valide trouvée dans les données.")
+    stop("No valid _PC variable found in the data.")
   }
   if (length(candidate_vars) > 1) {
-    message("Plusieurs variables _PC trouvées : ", paste(candidate_vars, collapse = ", "))
-    message("La première variable détectée est utilisée : ", candidate_vars[1])
+    message("Several _PC variables found: ", paste(candidate_vars, collapse = ", "))
+    message("The first variable detected is used: ", candidate_vars[1])
   }
-  
+
   variable <- candidate_vars[1]
-  
-  # Utiliser remove_block_code() à la place du split fait main
+  data$Valeurs <- data[[variable]]
+
   data$plot_id <- toupper(trimws(data$plot_id))
   blocks <- c("A", "B", "C", "D")
   data$xp_trt_code <- remove_block_code(data$plot_id, blocks = blocks)
-  # Créer la colonne Valeurs
-  data <- data %>%
-    mutate(
-      Valeurs = as.numeric(.data[[variable]]),
-      Type = "Intensite"
-    )
-  
-  # Échelle automatique si non précisée
+
   if (is.null(echelle)) {
     max_val <- max(data$Valeurs, na.rm = TRUE)
     echelle <- ceiling(max_val * 1.1)
   }
-  
+
   if (is.null(titre)) {
     titre <- paste("Boxplot -", variable)
   }
-  
-  # Graphique
+
   p <- ggplot(data, aes(x = xp_trt_code, y = Valeurs)) +
     geom_boxplot(
       aes(fill = xp_trt_code),
       alpha = 0.6, outlier.color = "red", outlier.shape = NA
-    ) +
-    stat_summary(
-      fun = mean, geom = "point", shape = 4, size = 3, color = "black"
-    ) +
+    )
+
+  # ✅ Ajout des points individuels si demandé
+  if (show_dots) {
+    p <- p + geom_jitter(
+      color = "#FF6600",
+      width = 0.2, size = 2, alpha = 0.7, show.legend = FALSE
+    )
+  }
+
+  # Moyenne
+  p <- p + stat_summary(
+    fun = mean, geom = "point", shape = 4, size = 3, color = "black"
+  ) +
     labs(
       title = titre,
       subtitle = paste("Date :", paste(unique(data$observation_date), collapse = ", ")),
@@ -313,12 +309,10 @@ plot_xpbox <- function(data, titre = NULL, echelle = NULL, caption = "IFV+") {
       caption = caption
     ) +
     scale_y_continuous(breaks = seq(0, 100, by = 10), limits = c(0, echelle)) +
-    scale_fill_manual(
-      values = rep("#00AB50", length(unique(data$xp_trt_code)))
-    ) +
+    scale_fill_manual(values = rep("#00AB50", length(unique(data$xp_trt_code)))) +
     theme_minimal(base_size = 14) +
     theme(legend.position = "none")
-  
+
   return(p)
 }
 
