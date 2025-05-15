@@ -19,7 +19,7 @@ save_data_to_excel<- function(combined_data, excel_data_trial_path) {
   base <- tools::file_path_sans_ext(basename(excel_data_trial_path))
   ext <- tools::file_ext(excel_data_trial_path)
   
-  # Générer un nom de fichier versionné
+  # Generate a versioned file name
   i <- 1
   repeat {
     new_file <- file.path(dir, paste0(base, "_v", i, ".", ext))
@@ -29,9 +29,9 @@ save_data_to_excel<- function(combined_data, excel_data_trial_path) {
   
   # Copier le fichier original
   success <- file.copy(from = excel_data_trial_path, to = new_file, overwrite = FALSE)
-  if (!success) stop("❌ Unable to create versioned copy of Excel file.")
+  if (!success) stop("Unable to create versioned copy of Excel file.")
   
-  # Charger le fichier copié
+  # Load the copied file
   wb <- openxlsx2::wb_load(new_file)
   
   # Supprimer l'ancienne feuille "data" si elle existe
@@ -39,15 +39,15 @@ save_data_to_excel<- function(combined_data, excel_data_trial_path) {
     wb$remove_worksheet("data")
   }
   
-  # Ajouter les nouvelles données dans une feuille "data"
+  # Add the new data to a "data" sheet
   wb$add_worksheet("data")
   wb$add_data_table(sheet = "data", x = combined_data)
   wb$set_active_sheet("data")
   
-  # Sauvegarder le fichier copié avec les nouvelles données
+  # Save the copied file with the new data
   wb$save(new_file)
   
-  message(paste0("✅ Versioned Excel file saved as: ", new_file))
+  message(paste0(" Versioned Excel file saved as: ", new_file))
   return(new_file)
 }
 
@@ -61,30 +61,28 @@ save_data_to_excel<- function(combined_data, excel_data_trial_path) {
 #' @return None. Updates self$excel_data_trial if needed.
 #' @export
 prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
-  # Si le fichier trial n’existe pas ou est invalide
+  # If the trial file does not exist or is invalid
   if (is.null(self$excel_data_trial) || !file.exists(self$excel_data_trial)) {
-    message("📁 Creating the trial Excel file from the blank template...")
+    message(" Creating the trial Excel file from the blank template...")
     
-    # Définir le nom de fichier
     if (is.null(filename)) {
       filename <- paste0(tools::file_path_sans_ext(basename(self$excel_model)), "_copie.xlsx")
     }
     
-    # Définir le chemin complet
     if (is.null(directory)) {
-      directory <- getwd()  # répertoire courant
+      directory <- getwd()  
     }
     
     full_path <- file.path(directory, filename)
     
-    # Copier le modèle
+    # Copy model
     success <- file.copy(from = self$excel_model, to = full_path, overwrite = TRUE)
     
     if (success) {
       self$excel_data_trial <- full_path
-      message(paste("✅ Trial Excel created at:", full_path))
+      message(paste(" Trial Excel created at:", full_path))
     } else {
-      stop("❌ Failed to create the trial Excel file.")
+      stop(" Failed to create the trial Excel file.")
     }
   }
 }
@@ -111,12 +109,12 @@ read_metadata_sheets <- function(self) {
     
     if (nrow(placette_data) > 0) {
       self$add_metadata("plot_desc", placette_data)
-      message("✅ Sheet 'placette' loaded into metadata$placette.")
+      message("Sheet 'placette' loaded into metadata$placette.")
     } else {
-      message("⚠️ Sheet 'placette' is empty.")
+      message("Sheet 'placette' is empty.")
     }
   } else {
-    message("ℹ️ Sheet 'placette' not found.")
+    message("Sheet 'placette' not found.")
   }
   
   # Read and store 'modalite' sheet
@@ -126,11 +124,11 @@ read_metadata_sheets <- function(self) {
     
     if (nrow(modalite_data) > 0) {
       self$add_metadata("moda_desc", modalite_data)
-      message("✅ Sheet 'modalite' loaded into metadata$modalite.")
+      message("Sheet 'modalite' loaded into metadata$modalite.")
     } else {
-      message("⚠️ Sheet 'modalite' is empty.")
+      message("Sheet 'modalite' is empty.")
     }
   } else {
-    message("ℹ️ Sheet 'modalite' not found.")
+    message("Sheet 'modalite' not found.")
   }
 }
