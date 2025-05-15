@@ -14,7 +14,7 @@
 #'
 #' @details
 #' If `xp _trt_code` is not provided, it is inferred from the `plot_id` column:
-#' numeric plot codes are extracted from the beginning of the string (e.g. "10A" → 10),
+#' numeric plot codes are extracted from the beginning of the string (e.g. "10A" to 10),
 #' and "TNT" is used directly for untreated control plots.
 #'
 #' Group comparison is only meaningful if the global test (ANOVA or Kruskal-Wallis) is statistically significant.
@@ -24,7 +24,7 @@
 #'
 #' @param data A data.frame with at least a column of values and a grouping factor.
 #' @param value_col Column name (string) with numeric values.
-#' @param group_col Column name (string) with grouping (default: "xp_trt_code").
+#' @param trt_col Column name (string) with grouping (default: "xp_trt_code").
 #' @param alpha Significance threshold (default = 0.05).
 #' @param group_method "SNK" or "LSD" for ANOVA; always "kruskal" for Kruskal-Wallis.
 #' @param force_test Force "anova" or "kruskal" (bypass assumptions).
@@ -32,31 +32,31 @@
 #'
 #' @return A list with test name, p-value and group letters.
 #' @export
-test_stats <- function(data, value_col = "PM_LEAF_PC", group_col = "xp_trt_code",
+test_stats <- function(data, value_col = "PM_LEAF_PC", trt_col = "xp_trt_code",
                        alpha = 0.05,
                        group_method = "SNK",
                        force_test = NULL,
                        verbose = TRUE) {
 
-  if (!(value_col %in% names(data)) || !(group_col %in% names(data))) {
-    stop("❌ Required columns are missing.")
+  if (!(value_col %in% names(data)) || !(trt_col %in% names(data))) {
+    stop("Required columns are missing.")
   }
 
-  df <- data[!is.na(data[[value_col]]) & !is.na(data[[group_col]]), ]
+  df <- data[!is.na(data[[value_col]]) & !is.na(data[[trt_col]]), ]
 
-  if (nrow(df) == 0 || length(unique(df[[group_col]])) <= 1) {
-    if (verbose) message("⚠️ Not enough data or only one group.")
+  if (nrow(df) == 0 || length(unique(df[[trt_col]])) <= 1) {
+    if (verbose) message("Not enough data or only one group.")
     return(list(test = "Non applicable", p_value = NA, groupes = data.frame(groups = character(0))))
   }
 
-  df[[group_col]] <- as.factor(df[[group_col]])
-  formula <- as.formula(paste(value_col, "~", group_col))
+  df[[trt_col]] <- as.factor(df[[trt_col]])
+  formula <- as.formula(paste(value_col, "~", trt_col))
 
   if (is.null(force_test)) {
     model <- stats::aov(formula, data = df)
     p_norm <- check_normality(model)
     p_var <- check_heteroscedasticity(model)
-    if (verbose) message("🔍 Shapiro p =", round(p_norm, 3), " | Bartlett p =", round(p_var, 3))
+    if (verbose) message("Shapiro p =", round(p_norm, 3), " | Bartlett p =", round(p_var, 3))
   }
 
   if (!is.null(force_test) && force_test == "anova" ||
@@ -67,19 +67,19 @@ test_stats <- function(data, value_col = "PM_LEAF_PC", group_col = "xp_trt_code"
 
     groupes <- switch(
       group_method,
-      SNK = agricolae::SNK.test(model, trt = group_col, group = TRUE)$groups,
-      LSD = agricolae::LSD.test(model, trt = group_col, group = TRUE)$groups,
-      stop("❌ Invalid group_method for ANOVA.")
+      SNK = agricolae::SNK.test(model, trt = trt_col, group = TRUE)$groups,
+      LSD = agricolae::LSD.test(model, trt = trt_col, group = TRUE)$groups,
+      stop("Invalid group_method for ANOVA.")
     )
 
   } else {
     test_type <- "Kruskal"
     pval <- stats::kruskal.test(formula, data = df)$p.value
-    groupes <- agricolae::kruskal(df[[value_col]], df[[group_col]], group = TRUE)$groups
+    groupes <- agricolae::kruskal(df[[value_col]], df[[trt_col]], group = TRUE)$groups
   }
 
   groupes$modality <- rownames(groupes)
-  moyennes <- stats::aggregate(df[[value_col]], by = list(df[[group_col]]), FUN = mean)
+  moyennes <- stats::aggregate(df[[value_col]], by = list(df[[trt_col]]), FUN = mean)
   names(moyennes) <- c("modality", "mean")
 
   groupes <- merge(groupes, moyennes, by = "modality")
@@ -90,12 +90,12 @@ test_stats <- function(data, value_col = "PM_LEAF_PC", group_col = "xp_trt_code"
   return(list(test = test_type, p_value = pval, groupes = groupes))
 }
 
-# Test de normalité des résidus (Shapiro-Wilk)
+# Residual normality test (Shapiro-Wilk)
 check_normality <- function(model) {
   stats::shapiro.test(residuals(model))$p.value
 }
 
-# Test d’homogénéité des variances (Bartlett sur les résidus)
+# Homogeneity of variances test (Bartlett on residuals)
 check_heteroscedasticity <- function(model) {
   data <- model$model
   stats::bartlett.test(data[[1]] ~ data[[2]])$p.value
