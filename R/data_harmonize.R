@@ -11,24 +11,24 @@
 #' @return A dataframe with harmonized column types.
 #' @export
 harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst/extdata/star_dictionary.csv") {
-  
+
   if (is.null(types_map)) {
     types_df <- read.csv2(dictionary_path, stringsAsFactors = FALSE)
     types_df <- types_df[!(is.na(types_df$nom) | types_df$nom == "" |
                              is.na(types_df$Rclass) | types_df$Rclass == ""), ]
     types_map <- setNames(as.list(types_df$Rclass), types_df$nom)
   }
-  
+
   for (col in names(types_map)) {
     if (col %in% names(df)) {
       type <- types_map[[col]]
-      
+
       if (type == "date") {
         # Multiple attempts on common formats
         original_dates <- df[[col]]
         tryFormats <- c("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y")
         success <- FALSE
-        
+
         for (fmt in tryFormats) {
           test <- suppressWarnings(as.Date(original_dates, format = fmt))
           if (all(!is.na(test) | is.na(original_dates))) {
@@ -38,12 +38,12 @@ harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst
             break
           }
         }
-        
+
         if (!success) {
           warning(paste("Could not convert column", col, "to Date. It remains as text."))
           df[[col]] <- as.character(original_dates)
         }
-        
+
       } else {
         # Standard conversion
         df[[col]] <- switch(
@@ -56,7 +56,7 @@ harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst
       }
     }
   }
-  
+
   return(df)
 }
 
@@ -110,47 +110,3 @@ remove_block_code <- function(pid,blocks,separator=NULL) {
   }
   return(xp_trt_code)
 }
-
-
-#' Title
-#'
-#' @param data a dataframe to resume
-#' @param var_col character, the colname of the variable to plot
-#' @param group_cols the colname of the group
-#' @param funs statistic to plot, a vector of one or two statistic. by default c("mean","frequency")
-#'
-#' @returns a dataframe ready for plotting
-#' @export
-resume_data <- function(data, var_col, group_cols,funs = list(intensite=mean,frequence=frequency)) {
-  
-  # flag_variable
-  flag_variable <- "variable" %in% colnames(data)
-  
-  # convert column argument to symbol
-  var <- dplyr::ensym(var_col)
-  if(flag_variable) group_syms <- dplyr::syms(c(group_cols,"variable")) else group_syms <- dplyr::syms(group_cols)
-  
-  data_resume <- data.frame()
-  for (i in 1:length(funs))
-  {
-    if (identical(funs[[i]], base::mean)) {
-      resume <- data %>%
-        dplyr::group_by(!!!group_syms) %>%
-        dplyr::summarise(
-          lower.CL = mean({{ var }}, na.rm = TRUE) - qt(0.975, df = n() - 1) * sd({{ var }}, na.rm = TRUE) / sqrt(n()),
-          upper.CL = mean({{ var }}, na.rm = TRUE) + qt(0.975, df = n() - 1) * sd({{ var }}, na.rm = TRUE) / sqrt(n()),
-          value = mean({{ var }}, na.rm = TRUE), # we need to do that after lower.CL and upper.CL calculation, else value = var
-          .groups = "drop"
-        ) %>%
-        dplyr::mutate(type = if ("type" %in% colnames(data)) paste(type, !!names(funs)[i]) else !!names(funs)[i])
-    } else {
-      resume <- data %>%
-        dplyr::group_by(!!!group_syms) %>%
-        dplyr::summarise(value = funs[[i]]({{ var }}), .groups = "drop") %>%
-        dplyr::mutate(type = if ("type" %in% colnames(data)) paste(type, !!names(funs)[i]) else !!names(funs)[i])
-    }
-    data_resume <- dplyr::bind_rows(data_resume,resume)
-    if(!flag_variable) data_resume$variable = var_col
-  }
-  return(data_resume)
-} #end function

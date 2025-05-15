@@ -65,3 +65,71 @@ revoir les interactions avec Excel : startbox ne peut et ne doit qu'ajouter des 
 
 
 ```
+
+
+## Calculer les tableaux de résumé
+
+### Chargement d'un jeu de données
+
+Un jeu de données d'observation est accessible dans le fichier "data_standard_ex.xlsx", proposé comme exepmle dans le package {startbox}. Ce jeu de données d'observation contient des notations brutes d'oïdium sur feuilles réalisées le 05 juin 2024.
+
+```{r}
+#| lable: load_obs
+
+file_path <- system.file("extdata","data_standard_ex.xlsx",package="startbox")
+data_F1 <- openxlsx2::read_xlsx(file_path,sheet ="data_F1")
+head(data_F1)
+```
+
+
+
+### Calcul de la fréquence et de l'intensité d'attaque
+
+La fréquence et l'intensité d'attaque sont calculées par défaut à partir des données brutes avec la fonction resume_data().
+Le paramètre group_cols permets de définir les colonnes qui regroupent les données entre elles. 
+Dans l'exemple ci-dessous, on calcule frequence et intensité d'attaque par placette ('plot_id'). Le résultat est un dataframe, incluant une colonne 'calculation' qui précise le nom des fonctions appliquées.
+
+```{r}
+#| lable: load_obs
+
+F_I_placette <- resume_data(data_F1,var_col = "PM_LEAF_PC", group_cols = c("plot_id"),funs = list(intensite = mean, frequence = frequency))
+head(F_I_placette)
+```
+
+### Calcul de l'efficacité
+
+Dans le cas le plus simple, l'efficacité de traitement est calculée pour chaque placette à partir de la moyenne des TNT de l'essai. Il s'agit du cas par défaut.
+
+```{r}
+eff_par_placette <- resume_data(F_I_placette,
+            var_col = "value",
+            group_cols = c("plot_id","calculation"),
+            funs=list(efficacite=efficacy))
+head(eff_par_placette)
+
+```
+
+Il est possible d'avoir des situations plus complexes, ou l'efficacité est calculée par rapport au TNT de chaque bloc, ou même selon une table d'association qui associe à chaque placette 'plot_id' le TNT à prendre en référence, identifié dans ce cas par 'tnt_id' (qui est le 'plot_id' du TNT).
+
+```{r}
+df_plot_tnt <- data.frame(tnt_id=rep(paste0("TNT",1:4),11),plot_id = sample(unique(F_I_placette$plot_id)))
+df_plot_tnt %>%
+  mutate(tnt_id = case_when(
+    plot_id == "TNT1" ~ "TNT1",
+    plot_id == "TNT2" ~ "TNT2",
+    plot_id == "TNT3" ~ "TNT3",
+    plot_id == "TNT4" ~ "TNT4",
+    TRUE ~ tnt_id,
+  )) -> df_plot_tnt
+
+
+eff_placette_tnt <- resume_data(F_I_placette,
+            var_col = "value",
+            group_cols = c("plot_id","calculation"),
+            funs=list(efficacite=efficacy),
+            df_tnt = df_plot_tnt)
+head(eff_placette_tnt)
+
+```
+
+
