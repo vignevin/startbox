@@ -1,4 +1,5 @@
 # create R6 class to store user_data
+#' @title User Data R6 Class
 user_data <- R6::R6Class(
   "UserData",
   public = list(
