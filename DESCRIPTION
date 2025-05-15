@@ -14,9 +14,16 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Language: fr
 Imports: 
+    agricolae (>= 1.3-7),
+    dplyr (>= 1.1.4),
+    ggplot2 (>= 3.5.1),
     magrittr,
     openxlsx2 (>= 1.14),
     R6 (>= 2.6.1)
 Suggests: 
+    knitr,
+    quarto,
+    rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+VignetteBuilder: knitr, quarto
