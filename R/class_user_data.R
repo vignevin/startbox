@@ -1,12 +1,13 @@
 # create R6 class to store user_data
 #' @title User Data R6 Class
+#' @export
 user_data <- R6::R6Class(
   "UserData",
   public = list(
     # excel template path
     excel_model = NULL,
     # data_trial excel
-    excel_data_trial =NULL,
+    excel_data_trial = NULL,
     # combined data
     combined_data = NULL,
     # obs_data is the list of dataframes with observation data. each list item has the name of the source file
@@ -24,9 +25,15 @@ user_data <- R6::R6Class(
     #' @param excel_data_trial excel data trial path
     #'
     #' @returns a  "UserData" object
-    initialize = function(excel_model = NULL, excel_data_trial =NULL){
-      self$excel_model <- excel_model
+    initialize = function(excel_model = NULL, excel_data_trial = NULL) {
+      if (is.null(excel_model)) {
+        self$excel_model <- system.file("extdata", "template.xlsx", package = "startbox")
+      } else {
+        self$excel_model <- excel_model
+      }
       self$excel_data_trial <- excel_data_trial
+      
+      message("Initialise bien lancé")
     },
     
     #' @description
