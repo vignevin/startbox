@@ -49,13 +49,14 @@ resume_data <- function(
         dplyr::group_by(!!!group_tnt) %>%
         dplyr::summarise(
           mean_tnt = mean({{ var }}, na.rm = T),
+          nb_tnt = dplyr::n(),
           .groups = "drop"
         ) -> mean_tnt
 
       if (is.na(mean_tnt[1, 1]) | nrow(mean_tnt) == 0) {
         print("no TNT value(s) found in data, please check your data")
         stop()
-      }
+      } else {print(paste(unique(mean_tnt$nb_tnt),code_tnt,"used for calculation of efficacy"))}
 
       if ("plot_id" %in% colnames(mean_tnt)) {
         mean_tnt %>%
@@ -79,7 +80,7 @@ resume_data <- function(
           mean_tnt = mean(mean_tnt),
           sd = sd({{ var }}, na.rm = TRUE),
           value = startbox::efficacy({{ var }}, value_tnt = mean_tnt),
-          nb = n(),
+          nb = dplyr::n(),
           .groups = "drop"
         ) %>%
         dplyr::mutate(
@@ -92,7 +93,7 @@ resume_data <- function(
         dplyr::summarise(
           sd = sd({{ var }}, na.rm = TRUE),
           value = funs[[i]]({{ var }}),
-          nb = n(),
+          nb = dplyr::n(),
           .groups = "drop"
         ) %>%
         dplyr::mutate(

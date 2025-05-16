@@ -114,7 +114,7 @@ Il est possible d'avoir des situations plus complexes, ou l'efficacité est calc
 ```{r}
 df_plot_tnt <- data.frame(tnt_id=rep(paste0("TNT",1:4),11),plot_id = sample(unique(F_I_placette$plot_id)))
 df_plot_tnt %>%
-  mutate(tnt_id = case_when(
+  dplyr::mutate(tnt_id = dplyr::case_when(
     plot_id == "TNT1" ~ "TNT1",
     plot_id == "TNT2" ~ "TNT2",
     plot_id == "TNT3" ~ "TNT3",
