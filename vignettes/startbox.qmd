@@ -23,9 +23,9 @@ library(startbox)
 
 ## Importer un fichier Excel standard
 
-Le package fonctionne avec un fichier Excel standard, qui stocke les données descriptives de l'essai (les modalités mises en place, les caractéristiques de la parcelles, le plan d'expérience) et les données observées. 
+Le package fonctionne avec un fichier Excel standard, qui stocke les données descriptives de l'essai (les modalités mises en place, les caractéristiques de la parcelles, le plan d'expérience) et les données observées.
 
-Un modèle de fichier standard est accessible avec la fonction get_template_excel(). 
+Un modèle de fichier standard est accessible avec la fonction get_template_excel().
 
 ```{r}
 #| label: get_template_excel
@@ -34,38 +34,71 @@ get_template_excel()
 
 ```
 
+## Gestion des données d'observation dans Excel
 
+Le package `{startbox}` propose plusieurs fonctions pour faciliter l'import, l'export et la mise à jour des feuilles d'observations (`data_*`) dans un fichier Excel d'essai.
 
+### Créer un objet `user_data`
 
-prévoir ici 
-- de créer un objet user_data (avec ou sans fichier excel en entrée)
-  - si fichier excel : on ajoute les obs, les métadata placettes, moda ...
-  - si non; user_data est vide
+L'objet principal utilisé est `user_data`, qui permet de centraliser les données d'observations et les métadonnées associées à un essai.
 
--> Une fonction qui crée cet objet data_user (=initialize)
+Deux cas sont possibles lors de la création : - **Sans fichier Excel :** l'objet est vide, aucune donnée n'est chargée. - **Avec un fichier Excel fourni :** le fichier est associé à l'objet, mais les données (observations et métadonnées) doivent être importées manuellement avec les fonctions dédiées.
 
--> une ou deux fonctions importent les données du fichier Excel pour mettre à jour data_user
-    - metadata -> existe déjà
-    - data -> à créer (les noms des feuilles doivent commencer par convention par "data_")
-(utile uniquement si fichier Excel fournit par l'utilisateur)
-(ajouter fonction check pour vérifier la conformité des données)
+```{r}
+# Cas 1 : création d'un objet vide
+mydata <- user_data$new()
 
--> une fonction wrapper qui fait tout à la fois
+# Cas 2 : création d'un objet avec fichier Excel existant
+mydata2 <- user_data$new(excel_data_trial = system.file("extdata","data_standard_ex.xlsx",package="startbox"))
+```
 
+### Ajouter manuellement des observations dans l'objet `user_data`
 
-revoir les interactions avec Excel : startbox ne peut et ne doit qu'ajouter des données. donc soit :
-- on prend le fichier excel utilisateur, et on ajouter les (nouvelles) données d'observations 
-- si le fichier excel n'existe pas, on prend le modèle et on ajoute les données observation
+Il est possible d'ajouter directement un tableau de données (`data.frame`) dans l'attribut `obs_data` de l'objet `user_data` pour pouvoir le charger dans son fichiequi répertorie les observations de son essais.
 
--> créer une fonction update_excel() qui ajoute les données manquantes au fichier de base
+Cela peut être pratique si l'utilisateur travaille avec un fichier `.csv` brut ou des données créées directement dans R.
 
+```{r}
+# Exemple : chargement d'un fichier CSV local
+myfilepath <- system.file("misc","teissonniere_dataG1_2024.csv",package="startbox")
+data1 <- read.csv2(myfilepath)
 
-```{r load_datafile}
+# Ajout direct dans l'objet user_data avec le nom du fichier
+mydata2$add_obs(name = basename(myfilepath), df = data1)
+```
 
+### Importer les métadonnées
 
+Les feuilles de métadonnées (placette, modalite) peuvent être importées à tout moment à l'aide de la fonction read_metadata_sheets(), en passant en argument l'objet `user_data`. Il est nécessaire qu'un fichier ai été transmit dans excel_data_trial sinon ça ne fonctionnera pas.
+
+```{r}
+read_metadata_sheets(mydata2)
+```
+
+### Importer les feuilles d'observations
+
+La fonction import_data_sheets() permet d'importer toutes les feuilles dont le nom commence par data\_ dans l'attribut obs_data.
+
+```{r}
+import_data_sheets(mydata2,system.file("extdata","data_standard_ex.xlsx",package="startbox"))
 
 ```
 
+### Exporter les données d'observations
+
+La fonction export_data_sheets() permet de créer une nouvelle version du fichier Excel en y ajoutant les feuilles data\_\* présentes dans l'objet. Le fichier est exporté dans le dossier Téléchargements avec un horodatage automatique.
+
+```{r}
+export_data_sheets(mydata2)
+```
+
+### Utiliser le wrapper complet
+
+Pour automatiser l'ensemble des étapes (import des données data\_\* puis export vers un nouveau fichier Excel), la fonction wrapper_data() permet de réaliser ces deux actions en une seule commande.
+
+```{r}
+wrapper_data(mydata2)
+```
 
 ## Calculer les tableaux de résumé
 
@@ -81,13 +114,9 @@ data_F1 <- openxlsx2::read_xlsx(file_path,sheet ="data_F1")
 head(data_F1)
 ```
 
-
-
 ### Calcul de la fréquence et de l'intensité d'attaque
 
-La fréquence et l'intensité d'attaque sont calculées par défaut à partir des données brutes avec la fonction resume_data().
-Le paramètre group_cols permets de définir les colonnes qui regroupent les données entre elles. 
-Dans l'exemple ci-dessous, on calcule frequence et intensité d'attaque par placette ('plot_id'). Le résultat est un dataframe, incluant une colonne 'calculation' qui précise le nom des fonctions appliquées.
+La fréquence et l'intensité d'attaque sont calculées par défaut à partir des données brutes avec la fonction resume_data(). Le paramètre group_cols permets de définir les colonnes qui regroupent les données entre elles. Dans l'exemple ci-dessous, on calcule frequence et intensité d'attaque par placette ('plot_id'). Le résultat est un dataframe, incluant une colonne 'calculation' qui précise le nom des fonctions appliquées.
 
 ```{r}
 #| lable: load_obs
@@ -131,5 +160,3 @@ eff_placette_tnt <- resume_data(F_I_placette,
 head(eff_placette_tnt)
 
 ```
-
-
