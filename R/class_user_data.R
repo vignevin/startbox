@@ -33,7 +33,6 @@ user_data <- R6::R6Class(
       }
       self$excel_data_trial <- excel_data_trial
       
-      message("Initialise bien lancé")
     },
     
     #' @description
