@@ -2,26 +2,28 @@
 % Please edit documentation in R/graphs.R
 \name{plot_xpbox}
 \alias{plot_xpbox}
-\title{Boxplot résumé pour une expérimentation}
+\title{Boxplot summary for an experiment}
 \usage{
-plot_xpbox(data, titre = NULL, echelle = NULL, caption = "IFV+")
+plot_xpbox(
+  data,
+  titre = NULL,
+  echelle = NULL,
+  caption = "IFV+",
+  show_dots = FALSE
+)
 }
 \arguments{
-\item{data}{Données brutes contenant au moins plot_id et une variable "_PC".}
+\item{data}{Raw data containing at least plot_id and a "_PC" variable.}
 
-\item{titre}{Titre principal du graphique (optionnel).}
+\item{titre}{Main title of the graph (optional).}
 
-\item{echelle}{Limite supérieure de l'axe y (optionnel, sinon automatique).}
+\item{echelle}{Upper limit of the y-axis (optional, otherwise automatic).}
 
 \item{caption}{A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".}
 }
 \value{
-Un objet \code{ggplot2}.
+A \code{ggplot2} object.
 }
 \description{
-Cette fonction génère automatiquement un graphique en boîte à moustaches
-(boxplot) à partir de données expérimentales brutes (parcelle, observation, maladie).
-}
-\examples{
-plot_xpbox(my_data)
+This function automatically generates a box plot
 }

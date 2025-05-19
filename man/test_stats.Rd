@@ -7,7 +7,7 @@
 test_stats(
   data,
   value_col = "PM_LEAF_PC",
-  group_col = "xp_trt_code",
+  trt_col = "xp_trt_code",
   alpha = 0.05,
   group_method = "SNK",
   force_test = NULL,
@@ -19,7 +19,7 @@ test_stats(
 
 \item{value_col}{Column name (string) with numeric values.}
 
-\item{group_col}{Column name (string) with grouping (default: "xp_trt_code").}
+\item{trt_col}{Column name (string) with grouping (default: "xp_trt_code").}
 
 \item{alpha}{Significance threshold (default = 0.05).}
 
@@ -45,7 +45,7 @@ It then returns a summary of statistical groups using a post-hoc SNK test (for A
 }
 \details{
 If \verb{xp _trt_code} is not provided, it is inferred from the \code{plot_id} column:
-numeric plot codes are extracted from the beginning of the string (e.g. "10A" → 10),
+numeric plot codes are extracted from the beginning of the string (e.g. "10A" to 10),
 and "TNT" is used directly for untreated control plots.
 
 Group comparison is only meaningful if the global test (ANOVA or Kruskal-Wallis) is statistically significant.

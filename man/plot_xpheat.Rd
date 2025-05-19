@@ -22,7 +22,7 @@ plot_xpheat(
 
 \item{echelle}{(optional) Maximum value for the fill color scale. If NULL, an automatic scale is calculated.}
 
-\item{orientation}{(optional) rotation of heatmap c(“vertical”, “horizontal”) default vertical}
+\item{orientation}{(optional) rotation of heatmap c(vertical, horizontal) default vertical}
 
 \item{caption}{A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".}
 }
@@ -39,8 +39,4 @@ using \code{plot_x} and \code{plot_y} coordinates and coloring according to a se
 \item If no *_PC variable is found in the data, the function will stop with an error.
 \item Useful for visualizing spatial patterns of disease in experimental trials.
 }
-}
-\examples{
-df <- mydata$prepare_final_data()
-plot_xpheat(df)
 }

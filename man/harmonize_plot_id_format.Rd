@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_merge.R
 \name{harmonize_plot_id_format}
 \alias{harmonize_plot_id_format}
-\title{Harmonize plot_id format to match placette (e.g. 10A → A10)}
+\title{Harmonize plot_id format to match placette (e.g. 10A to A10)}
 \usage{
 harmonize_plot_id_format(pid)
 }
@@ -13,5 +13,5 @@ harmonize_plot_id_format(pid)
 harmonized plot_id (e.g. A10, TNT3, etc.)
 }
 \description{
-Harmonize plot_id format to match placette (e.g. 10A → A10)
+Harmonize plot_id format to match placette (e.g. 10A to A10)
 }

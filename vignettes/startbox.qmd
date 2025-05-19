@@ -60,7 +60,7 @@ Cela peut être pratique si l'utilisateur travaille avec un fichier `.csv` brut 
 
 ```{r}
 # Exemple : chargement d'un fichier CSV local
-myfilepath <- system.file("misc","teissonniere_dataG1_2024.csv",package="startbox")
+myfilepath <- system.file("extdata","teissonniere_dataG1_2024.csv",package="startbox")
 data1 <- read.csv2(myfilepath)
 
 # Ajout direct dans l'objet user_data avec le nom du fichier
