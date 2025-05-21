@@ -14,6 +14,7 @@ user_data <- R6::R6Class(
     # if the item is a sheet of an excel file, the name will be filename:sheetname
     obs_data = list(),
     metadata = list(),
+    traceability = NULL,
     
     
     #' @description
@@ -32,6 +33,14 @@ user_data <- R6::R6Class(
         self$excel_model <- excel_model
       }
       self$excel_data_trial <- excel_data_trial
+      
+      self$traceability <- data.frame(
+        datetime = character(),
+        operation = character(),
+        filename = character(),
+        description = character(),
+        stringsAsFactors = FALSE
+      )
       
     },
     
@@ -57,7 +66,6 @@ user_data <- R6::R6Class(
     #' @param df dataframe with observation data.
     #'
     #' @returns updated UserData
-    
     add_obs = function(name, df) {
       if (name %in% names(self$obs_data)) {
         message(paste("Updating element:", name))
@@ -75,6 +83,29 @@ user_data <- R6::R6Class(
     # Method for displaying elements
     show_obs_data = function() {
       lapply(self$obs_data, head)
+    },
+    
+    
+    #' Log a data-related action for traceability
+    #'
+    #' @description
+    #' This function adds a new entry to the `traceability` log stored in the R6 object.
+    #' It records the type of operation, the target file or sheet name(s), and the timestamp.
+    #'
+    #' @param operation A character string describing the action performed (e.g. `"import"`, `"export"`, `"update"`).
+    #' @param filename A character string indicating the name(s) of the file or sheet involved in the operation.
+    #'
+    #' @return No return value. This function updates the internal `traceability` data frame.
+    log_trace = function(operation, filename, description = "") {
+      new_entry <- data.frame(
+        datetime = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+        operation = operation,
+        filename = filename,
+        description = description,
+        stringsAsFactors = FALSE
+      )
+      
+      self$traceability <- dplyr::bind_rows(self$traceability, new_entry)
     },
     
     #' @description
