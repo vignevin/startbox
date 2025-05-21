@@ -89,7 +89,6 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
   }
 }
 
-
 #' @description
 #' Reads the 'placette' and 'modalite' sheets from the Excel trial file and stores them.
 #'
@@ -101,7 +100,7 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
 #'
 #' @param self An instance of the UserData R6 class.
 #' @export
-read_metadata_sheets <- function(self) {
+load_metadata_sheets <- function(self) {
   wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
 
   # Read and store 'placette' sheet
@@ -134,8 +133,6 @@ read_metadata_sheets <- function(self) {
     message("ℹ️ Sheet 'modalite' not found.")
   }
 }
-
-
 
 # Function to get and save the template Excel file
 #' get_template_excel
@@ -182,7 +179,7 @@ get_template_excel <- function(destination_path=NULL) {
 #'
 #' @return Updates `self$obs_data` with the newly imported sheets
 #' @export
-import_data_sheets <- function(self, filepath) {
+load_data_sheets <- function(self, filepath) {
   if (!file.exists(filepath)) {
     stop("❌ File not found: ", filepath)
   }
@@ -217,7 +214,14 @@ import_data_sheets <- function(self, filepath) {
     }
     
     self$obs_data[[safe_sheet]] <- df
+    
+    
   }
+  
+  loaded_sheets <- names(self$obs_data)
+  self$log_trace(
+    operation = "import",
+    filename = paste(loaded_sheets, collapse = ", "))
   
   invisible(self$obs_data)
 }
@@ -251,14 +255,16 @@ export_data_sheets <- function(self) {
     }
     
     if (sheetname %in% wb$sheet_names) {
-      message("⚠️ Sheet already exists: ", sheetname, " → skipped.")
-      next
+      openxlsx2::wb_remove_worksheet(wb, sheet = sheetname)
+      message("🔁 Sheet replaced: ", sheetname)
     }
     
     wb$add_worksheet(sheetname)
     wb$add_data_table(sheet = sheetname, x = df)
+    print(wb$sheet_names)
     message("✅ Sheet added: ", sheetname)
   }
+  
   
   # Horodatage au format 2025-05-15_16h22
   timestamp <- format(Sys.time(), "%Y-%m-%d_%Hh%M")
@@ -272,27 +278,110 @@ export_data_sheets <- function(self) {
   new_filename <- file.path(output_dir, paste0(name_no_ext, "_", timestamp, ".", ext))
   
   wb$save(new_filename)
+  print(wb$sheet_names)
   message("✅ New Excel file saved at: ", new_filename)
+  
+  added_sheets <- names(self$obs_data)
+  self$log_trace(
+    operation = "export",
+    filename = paste(added_sheets, collapse = ", "))
   
   invisible(new_filename)
 }
 
-#' Wrapper to import and export observation data in Excel
+#' Wrapper to load all data to do graphs
 #'
-#' This function first imports all `data_*` sheets from the Excel file into the `obs_data`
-#' attribute of the R6 object, then exports them into a new Excel file with versioning.
+#' This function first imports all `data_*` sheets from the Excel file into the `obs_data` 
+#' Loads the metadata if the plot and method sheets are filled in.
 #'
 #' @param self A `user_data` object (R6 class) containing the path to the Excel file.
 #'
-#' @return Invisibly returns the path to the new Excel file generated with additional data sheets.
+#' @return Invisibly returns invisible return, but file data loaded
 #' @export
 wrapper_data <- function(self) {
-  # Étape 1 : importer les feuilles data_* (met à jour self$obs_data)
-  import_data_sheets(self, self$excel_data_trial)
+  # Step 1: import the data_* sheets (update self$obs_data)
+  load_data_sheets(self, self$excel_data_trial)
   
-  # Étape 2 : exporter toutes les feuilles data_* dans une version du fichier
-  export_data_sheets(self)
+  #Step 2 : import the "placette" and "modalite" sheets (update self$metadata)
+  load_metadata_sheets(self)
 }
+
+#' Standardize an experimental data file or data frame
+#'
+#' @param input_data A path to a .csv or .xlsx file to import, or a data.frame already loaded in R.
+#' @param lookup_table Optional. A named vector mapping original column names to standardized names. If NULL, a default mapping is used.
+#' 
+#' @import dplyr
+#' @import tidyr
+#' @importFrom stringr str_detect str_extract
+#' @importFrom readr read_csv2
+#' @importFrom readxl read_excel
+#' @importFrom tools file_ext
+#'
+#' @return A cleaned and structured data.frame, ready for use in downstream processing and analysis.
+#' @export
+#'
+standardise_data <- function(input_data, lookup_table = c("Mildiou_Feuille" = "PM_LEAF_PC","Mildiou_Grappe"  = "PM_BER_PC","Oidium_Grappe"   = "UN_BER_PC","Oidium_Feuille"  = "UN_LEAF_PC","Stade.phénologique" = "bbch_stage","Stade.phenologique" = "bbch_stage","Stade phenologique" = "bbch_stage","Placette" = "plot_id","Bloc" = "block_id","Date" = "observation_date","Code.essai" = "experiment_id")) {
+  require(dplyr)
+  require(tidyr)
+  require(readr)
+  require(readxl)
+  require(tools)
+  
+  
+  # --- Si c'est déjà un data.frame, on continue ---
+  if (is.data.frame(input_data)) {
+    df <- input_data
+  } else if (is.character(input_data)) {
+    # Lire les données
+    ext <- tools::file_ext(input_data)
+    
+    # Lire les données selon l'extension
+    if (ext == "csv") {
+      df <- read.csv2(file = input_data, fileEncoding = "latin1")
+    } else if (ext == "xlsx") {
+      df <- readxl::read_excel(input_data, sheet = "data")
+    }
+  } else {
+    stop("❌ Format non supporté. Utilisez un fichier .csv ou .xlsx.")
+  }
+  
+  # Vérifier si les colonnes Maladie, Organe et Valeur sont présentes
+  if (all(c("Maladie", "Organe", "Valeur") %in% names(df))) {
+    df <- df %>%
+      tidyr::pivot_wider(names_from = c(Maladie, Organe), values_from = Valeur)
+  }
+  
+  # Renommer les colonnes selon le lookup_table
+  noms_avant <- names(df)
+  noms_apres <- ifelse(noms_avant %in% names(lookup_table), lookup_table[noms_avant], noms_avant)
+  names(df) <- noms_apres
+  
+  # Formater la BBCH si présente sans dupliquer "BBCH"
+  if ("bbch_stage" %in% names(df)) {
+    df <- df %>%
+      dplyr::mutate(bbch_stage = ifelse(grepl("^BBCH", bbch_stage), bbch_stage, paste("BBCH", bbch_stage)))
+  }
+  
+  # Réorganiser les colonnes : standardisées d'abord, autres ensuite
+  colonnes_standard <- unname(lookup_table)   # ex: plot_id, block_id, etc.
+  colonnes_presentes <- names(df)
+  colonnes_autres <- setdiff(colonnes_presentes, colonnes_standard)
+  df <- df[, c(intersect(colonnes_standard, colonnes_presentes), colonnes_autres)]
+  
+  # Ajouter xp_trt_code à partir de plot_id
+  if ("plot_id" %in% names(df)) {
+    df$xp_trt_code <- dplyr::case_when(
+      grepl("^TNT", toupper(df$plot_id)) ~ "TNT",
+      stringr::str_detect(df$plot_id, "[0-9]+") ~ stringr::str_extract(df$plot_id, "[0-9]+"),
+      TRUE ~ NA_character_
+    )
+  }
+  
+  
+  return(df)
+}
+
 
 
 
