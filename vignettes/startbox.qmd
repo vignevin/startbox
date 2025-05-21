@@ -30,7 +30,7 @@ Un modèle de fichier standard est accessible avec la fonction get_template_exce
 ```{r}
 #| label: get_template_excel
 
-get_template_excel()
+startbox::get_template_excel()
 
 ```
 
@@ -72,7 +72,7 @@ mydata2$add_obs(name = basename(myfilepath), df = data1)
 Les feuilles de métadonnées (placette, modalite) peuvent être importées à tout moment à l'aide de la fonction read_metadata_sheets(), en passant en argument l'objet `user_data`. Il est nécessaire qu'un fichier ai été transmit dans excel_data_trial sinon ça ne fonctionnera pas.
 
 ```{r}
-read_metadata_sheets(mydata2)
+load_metadata_sheets(mydata2)
 ```
 
 ### Importer les feuilles d'observations
@@ -80,7 +80,7 @@ read_metadata_sheets(mydata2)
 La fonction import_data_sheets() permet d'importer toutes les feuilles dont le nom commence par data\_ dans l'attribut obs_data.
 
 ```{r}
-import_data_sheets(mydata2,system.file("extdata","data_standard_ex.xlsx",package="startbox"))
+load_data_sheets(mydata2,system.file("extdata","data_standard_ex.xlsx",package="startbox"))
 
 ```
 
