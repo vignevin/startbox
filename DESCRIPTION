@@ -19,7 +19,11 @@ Imports:
     ggplot2 (>= 3.5.1),
     magrittr,
     openxlsx2 (>= 1.14),
-    R6 (>= 2.6.1)
+    R6 (>= 2.6.1),
+    readr,
+    readxl,
+    stringr,
+    tidyr
 Suggests: 
     knitr,
     quarto,
