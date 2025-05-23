@@ -5,7 +5,7 @@
 #' i.e. the number of sampled units (leaves, bunches, plants, etc.) infected expressed
 #' as a percentage of the total number of units observed.
 #'
-#' @param vecteur
+#' @param vecteur a numeric vector of disease severity observations in percentage
 #'
 #' @returns a numeric value of incidence, in percent
 #'
@@ -30,7 +30,7 @@ incidence <- function(vecteur) {
 #' The disease intensity is the amount of disease present in the population,
 #' expressed in percentage.
 #'
-#' @param vecteur
+#' @param vecteur a numeric vector of disease severity observations in percentage
 #'
 #' @returns a numeric value of intensity
 #'
@@ -55,7 +55,7 @@ intensity <- function(vecteur) {
 #' This function calculate the disease severity, as the mean value of severity measurements for diseased units ONLY (leaves, bunches, plants...).
 #' The disease severity is the area of a sampling unit affected by the disease, expressed as a percentage of the total area.
 #'
-#' @param vecteur
+#' @param vecteur a numeric vector of disease severity observations in percentage
 #'
 #' @returns a numeric value of intensity
 #'

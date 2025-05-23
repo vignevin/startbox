@@ -2,18 +2,20 @@
 % Please edit documentation in R/stats_metrics.R
 \name{intensity}
 \alias{intensity}
-\title{calcuate intensity (mean of value)}
+\title{calculation of disease intensity}
 \usage{
 intensity(vecteur)
 }
 \arguments{
-\item{vecteur}{}
+\item{vecteur}{a numeric vector of disease severity observations in percentage}
 }
 \value{
 a numeric value of intensity
 }
 \description{
-calcuate intensity (mean of value)
+This function calculate the disease intensity, as the mean value of severity measurements.
+The disease intensity is the amount of disease present in the population,
+expressed in percentage.
 }
 \examples{
 vec <- c(100, 20, 30, 0, 5, 0, 0)

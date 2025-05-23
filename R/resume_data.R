@@ -23,14 +23,12 @@ resume_data <- function(
   df_tnt = NULL,
   wide= FALSE
 ) {
-  # flag_variable
-  #flag_variable <- "variable" %in% colnames(data)
+
+  # local binding
+  calculation <- plot_id <- . <- NULL
 
   # convert column argument to symbol
   var <- dplyr::ensym(var_col)
-  #if (flag_variable) group_syms <- dplyr::syms(c(group_cols, "variable")) else
-  #  group_syms <- dplyr::syms(group_cols) ## to keep the col variable for traceabilty purpose
-
   group_syms <- dplyr::syms(group_cols)
   group_tnt <- NULL
 
@@ -110,7 +108,7 @@ resume_data <- function(
         ) -> resume
     ## to add to resume data
     data_resume <- dplyr::bind_rows(data_resume, resume)
-    #if (!flag_variable) data_resume$variable = var_col
+
   }
   return(data_resume)
 } #end function
@@ -129,6 +127,9 @@ resume_data <- function(
 #' @examples
 resume_pivot_wider <- function(df_resume)
 {
+  # local binding
+  calculation <- value <- NULL
+
   if (!is.data.frame(df_resume)) {
     stop("Input must be a data frame")
   }

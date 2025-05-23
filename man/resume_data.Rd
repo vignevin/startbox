@@ -8,9 +8,10 @@ resume_data(
   data,
   var_col,
   group_cols,
-  funs = list(intensite = mean, frequence = frequency),
+  funs = list(intensite = intensity, frequence = incidence),
   code_tnt = "TNT",
-  df_tnt = NULL
+  df_tnt = NULL,
+  wide = FALSE
 )
 }
 \arguments{
@@ -18,16 +19,16 @@ resume_data(
 
 \item{var_col}{character, the colname of the variable to plot}
 
-\item{group_cols}{the colname of the group}
+\item{group_cols}{colnames for grouping}
 
-\item{funs}{statistic to plot, a vector of one or two statistic. by default c("mean","frequency")}
+\item{funs}{vector of statistics to be applied, by default c("intensity","incidence")}
 
-\item{code_tnt}{a string to identify in TNT in the row of the dataframe by default "TNT"}
+\item{code_tnt}{for efficacy only : a string to identify in TNT in the row of the dataframe by default "TNT"}
 
-\item{df_tnt}{a dataframe to associate tnt_id to bloc_id or plot_id. tnt_id is the plot_id of TNT and MUST be a col of df_tnt}
+\item{df_tnt}{for efficacy only : a dataframe to associate tnt_id to bloc_id or plot_id. tnt_id is the plot_id of TNT and MUST be a col of df_tnt}
 }
 \value{
-a dataframe ready for plotting
+a dataframe with group_cols and including a 'calculation' column which specifies the name of the functions applied to the variable and a 'value' column which gives the calculated values.
 }
 \description{
 This function summarizes the data in a dataframe according to user-defined groups and functions. In particular, it allows you to calculate the intensity and frequency of disease attack per plot.

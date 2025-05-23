@@ -7,6 +7,7 @@
 a  "UserData" object
 
 updated UserData
+Log a data-related action for traceability
 }
 \description{
 User Data R6 Class
@@ -20,6 +21,7 @@ User Data R6 Class
 \item \href{#method-UserData-add_metadata}{\code{user_data$add_metadata()}}
 \item \href{#method-UserData-add_obs}{\code{user_data$add_obs()}}
 \item \href{#method-UserData-show_obs_data}{\code{user_data$show_obs_data()}}
+\item \href{#method-UserData-log_trace}{\code{user_data$log_trace()}}
 \item \href{#method-UserData-combine_data_obs}{\code{user_data$combine_data_obs()}}
 \item \href{#method-UserData-clone}{\code{user_data$clone()}}
 }
@@ -92,6 +94,29 @@ Internal function to add or update a dataset of observations
 \if{html}{\out{<div class="r">}}\preformatted{user_data$show_obs_data()}\if{html}{\out{</div>}}
 }
 
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-UserData-log_trace"></a>}}
+\if{latex}{\out{\hypertarget{method-UserData-log_trace}{}}}
+\subsection{Method \code{log_trace()}}{
+This function adds a new entry to the \code{traceability} log stored in the R6 object.
+It records the type of operation, the target file or sheet name(s), and the timestamp.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{user_data$log_trace(operation, filename, description = "")}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{operation}}{A character string describing the action performed (e.g. \code{"import"}, \code{"export"}, \code{"update"}).}
+
+\item{\code{filename}}{A character string indicating the name(s) of the file or sheet involved in the operation.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+No return value. This function updates the internal \code{traceability} data frame.
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-UserData-combine_data_obs"></a>}}

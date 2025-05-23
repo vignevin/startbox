@@ -2,7 +2,7 @@
 % Please edit documentation in R/data_excel.R
 \name{wrapper_data}
 \alias{wrapper_data}
-\title{Wrapper to import and export observation data in Excel}
+\title{Wrapper to load all data to do graphs}
 \usage{
 wrapper_data(self)
 }
@@ -10,9 +10,9 @@ wrapper_data(self)
 \item{self}{A \code{user_data} object (R6 class) containing the path to the Excel file.}
 }
 \value{
-Invisibly returns the path to the new Excel file generated with additional data sheets.
+Invisibly returns invisible return, but file data loaded
 }
 \description{
 This function first imports all \verb{data_*} sheets from the Excel file into the \code{obs_data}
-attribute of the R6 object, then exports them into a new Excel file with versioning.
+Loads the metadata if the plot and method sheets are filled in.
 }

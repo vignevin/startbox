@@ -12,5 +12,8 @@ efficacy(value, value_tnt)
 \item{value_tnt}{numeric value of TNT}
 }
 \description{
-calcul efficacy
+This function calculate the treatment efficacy.
+Efficacy is the level of reduction of target harmful organisms or damage caused by them to the plant,
+after application of a treatment, compared to an untreated control.
+Efficacy is expressed in percentage.
 }

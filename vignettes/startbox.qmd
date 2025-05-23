@@ -42,7 +42,11 @@ Le package `{startbox}` propose plusieurs fonctions pour faciliter l'import, l'e
 
 L'objet principal utilisé est `user_data`, qui permet de centraliser les données d'observations et les métadonnées associées à un essai.
 
-Deux cas sont possibles lors de la création : - **Sans fichier Excel :** l'objet est vide, aucune donnée n'est chargée. - **Avec un fichier Excel fourni :** le fichier est associé à l'objet, mais les données (observations et métadonnées) doivent être importées manuellement avec les fonctions dédiées.
+Deux cas sont possibles lors de la création :
+
+-   **Sans fichier Excel :** l'objet est vide, aucune donnée n'est chargée.
+
+-   **Avec un fichier Excel fourni :** le fichier est associé à l'objet, mais les données (observations et métadonnées) doivent être importées manuellement avec les fonctions dédiées.
 
 ```{r}
 # Cas 1 : création d'un objet vide
@@ -69,7 +73,7 @@ mydata2$add_obs(name = basename(myfilepath), df = data1)
 
 ### Importer les métadonnées
 
-Les feuilles de métadonnées (placette, modalite) peuvent être importées à tout moment à l'aide de la fonction read_metadata_sheets(), en passant en argument l'objet `user_data`. Il est nécessaire qu'un fichier ai été transmit dans excel_data_trial sinon ça ne fonctionnera pas.
+Les feuilles de métadonnées (placette, modalite) peuvent être importées à tout moment à l'aide de la fonction `load_metadata_sheets`, en passant en argument l'objet `user_data`. Il est nécessaire qu'un fichier ait été transmit dans excel_data_trial sinon ça ne fonctionnera pas.
 
 ```{r}
 load_metadata_sheets(mydata2)
@@ -77,7 +81,7 @@ load_metadata_sheets(mydata2)
 
 ### Importer les feuilles d'observations
 
-La fonction import_data_sheets() permet d'importer toutes les feuilles dont le nom commence par data\_ dans l'attribut obs_data.
+La fonction `import_data_sheets` permet d'importer toutes les feuilles dont le nom commence par data\_ dans l'attribut obs_data.
 
 ```{r}
 load_data_sheets(mydata2,system.file("extdata","data_standard_ex.xlsx",package="startbox"))
@@ -86,7 +90,7 @@ load_data_sheets(mydata2,system.file("extdata","data_standard_ex.xlsx",package="
 
 ### Exporter les données d'observations
 
-La fonction export_data_sheets() permet de créer une nouvelle version du fichier Excel en y ajoutant les feuilles data\_\* présentes dans l'objet. Le fichier est exporté dans le dossier Téléchargements avec un horodatage automatique.
+La fonction `export_data_sheets` permet de créer une nouvelle version du fichier Excel en y ajoutant les feuilles data présentes dans l'objet. Le fichier est exporté dans le dossier Téléchargements avec un horodatage automatique.
 
 ```{r}
 export_data_sheets(mydata2)
@@ -94,17 +98,17 @@ export_data_sheets(mydata2)
 
 ### Utiliser le wrapper complet
 
-Pour automatiser l'ensemble des étapes (import des données data\_\* puis export vers un nouveau fichier Excel), la fonction wrapper_data() permet de réaliser ces deux actions en une seule commande.
+Pour automatiser l'ensemble des étapes (import des données data\_\* puis export vers un nouveau fichier Excel), la fonction `wrapper_data` permet de réaliser ces deux actions en une seule commande.
 
 ```{r}
 wrapper_data(mydata2)
 ```
 
-## Calculer les tableaux de résumé
+# Calculer les tableaux de résumé
 
-### Chargement d'un jeu de données
+## Chargement d'un jeu de données
 
-Un jeu de données d'observation est accessible dans le fichier "data_standard_ex.xlsx", proposé comme exepmle dans le package {startbox}. Ce jeu de données d'observation contient des notations brutes d'oïdium sur feuilles réalisées le 05 juin 2024.
+Un jeu de données d'observation est accessible dans le fichier "data_standard_ex.xlsx", proposé comme exemple dans le package {startbox}. Ce jeu de données d'observation contient des notations brutes d'oïdium sur feuilles réalisées le 05 juin 2024.
 
 ```{r}
 #| lable: load_obs
@@ -114,34 +118,122 @@ data_F1 <- openxlsx2::read_xlsx(file_path,sheet ="data_F1")
 head(data_F1)
 ```
 
-### Calcul de la fréquence et de l'intensité d'attaque
+Avant de poursuivre, il est possible d'extraire quelques informations de plot_id pour enrichir notre tableau avec le code du traitement et le code du bloc
 
-La fréquence et l'intensité d'attaque sont calculées par défaut à partir des données brutes avec la fonction resume_data(). Le paramètre group_cols permets de définir les colonnes qui regroupent les données entre elles. Dans l'exemple ci-dessous, on calcule frequence et intensité d'attaque par placette ('plot_id'). Le résultat est un dataframe, incluant une colonne 'calculation' qui précise le nom des fonctions appliquées.
+```{r}
+# recuperation des codes des traitements
+data_F1$xp_trt_code <- remove_code(pid=data_F1$plot_id,
+                                   to_remove=c("A","B","C","D"))  
+
+## recuperation des blocs
+data_F1$block_id <- remove_code(pid=data_F1$plot_id,
+                                to_remove=1:10)
+
+head(data_F1)
+```
+
+## Fonctions de calcul
+
+### Description des fonctions
+
+Le tableau ci-dessous résume les fonctions intégrées au package :
+
+| Calcul | Fonction {startbox} | Description |
+|------------------|-------------------|--------------------------------------------------|
+| Fréquence d'attaque | `incidence` | Cette fonction calcule la fréquence de la maladie dans la population observée, c'est à dire le nombre d'unités échantillonnées (feuilles, régimes, plantes…) atteintes exprimé en pourcentage du nombre total d'unités évaluées. |
+| Intensité d'attaque | `intensity` | Cette fonction calcule l'intensité de la maladie, comme la valeur moyenne des mesures de séverité. L'intensité de la maladie correspond à la quantité de maladie présente dans la population, exprimée en pourcentage. |
+| Efficacité | `efficacy` | Cette fonction calcule l'efficacité, c'est à dire le niveau de réduction des organismes nuisibles ciblés ou des dommages qu'ils causent à la plante, après application d'un traitement, par rapport à un témoin non traité. L'efficacité est exprimée en pourcentage. |
+| Sévérité sur les unités malades | `severity_diseased` | Cette fonction calcule la séverité de la maladie, comme la valeur moyenne des mesures de séverité pour les unités malades UNIQUEMENT (feuilles, grappes, plantes…). La ​​séverité de la maladie correspond à la superficie d'une unité d'échantillonnage affectée par la maladie, exprimée en pourcentage de la superficie totale. |
+
+### Exemples de calcul
+
+```{r}
+
+obs_moda <- c(0,0,0,0,10,5,0,2,0,0,0,15,20,50)
+obs_tnt <- c(10,20,60,0,100,50,0,20,0,10,20,15,2,50)
+
+
+incidence(obs_moda)
+intensity(obs_moda)
+severity_diseased(obs_moda)
+
+# l'efficacité est calculée en comparant une valeur dans une modalité à la valeur de la même variable obtentue dans le témoin non traité
+efficacy(incidence(obs_moda),
+         value_tnt = incidence(obs_tnt))
+```
+
+## Calcul de la fréquence et de l'intensité d'attaque à partir d'un jeu de données d'observations
+
+La fréquence et l'intensité d'attaque sont calculées par défaut à partir des données brutes avec la fonction `resume_data()`. Le paramètre `group_cols` permet de définir les colonnes qui regroupent les données entre elles. Dans l'exemple ci-dessous, on calcule frequence et intensité d'attaque par `plot_id` (placette), sur la variable `PM_LEAF_PC`.
+
+Le résultat est un dataframe, incluant une colonne `calculation` qui précise le nom des fonctions appliquées sur la variable et une colonne `value` qui donne les valeurs calculées.
+
+### Calcul par placette
 
 ```{r}
 #| lable: load_obs
 
-F_I_placette <- resume_data(data_F1,var_col = "PM_LEAF_PC", group_cols = c("plot_id"),funs = list(intensite = mean, frequence = frequency))
+F_I_placette <- resume_data(data_F1,
+                            var_col = "PM_LEAF_PC", 
+                            group_cols = c("plot_id","xp_trt_code","block_id"),
+                            funs = list(intensite = intensity, frequence = incidence))
 head(F_I_placette)
 ```
 
-### Calcul de l'efficacité
+Il est possible de passer un tableau résumé en format "wide" avec la fonction `resume_pivot_wider`.
 
-Dans le cas le plus simple, l'efficacité de traitement est calculée pour chaque placette à partir de la moyenne des TNT de l'essai. Il s'agit du cas par défaut.
+```{r}
+head(resume_pivot_wider(F_I_placette))
+```
+
+### Calcul par modalité
+
+Une fois le calcul fait par placette, il est possible de faire la moyenne par modalité. Il suffit de réappliquer la fonction `resume_data` sur le tableau précédent en demandant un calcul de moyenne avec la fonction `mean`, que l'on peut compléter par le calcul de l'écart-type avec la fonction `sd`.
+
+Ici le calcul est fait uniquement sur la fréquence pour rendre plus lisible l'affichage.
+
+```{r}
+F_moda <- resume_data(F_I_placette %>% dplyr::filter(calculation == "frequence PM_LEAF_PC"),
+                      var_col = "value",
+                      group_cols = c("xp_trt_code"),
+                      funs = list(moyenne = mean, ecart_type = sd))
+head(resume_pivot_wider(F_moda))
+```
+
+Avec la même logique, il est possible de faire le calcul par bloc.
+
+## Calcul de l'efficacité
+
+::: callout-important
+L'efficacité se calcule sur l'intensité d'attaque ou sur la fréquence d'attaque. Il faut donc au préalable avoir réalisé ces calculs en utilisant la fonction resume_data.
+:::
+
+L'objectif est de calculer l'efficacité du traitement pour chaque placette, à la fois sur la fréquence et l'intensité d'attaque. Pour réaliser le calcul, nous allons donc appliquer la fonction `efficacy` sur les valeurs de fréquence et d'intensité calculées par placette précédemment avec la fonction `resume_data`, en regroupant par `plot_id`.
+
+### Efficacité calculée à partir de la moyenne de tous les TNT
+
+Dans le cas le plus simple, l'efficacité de traitement est calculée pour chaque placette à partir de la moyenne de tous les TNT [^1]. Il s'agit du cas par défaut.
+
+[^1]: Par défaut, les observations concernant les TNT sont identifés en recherchant la chaîne de charactères "TNT" dans les lignes du tableau.
 
 ```{r}
 eff_par_placette <- resume_data(F_I_placette,
             var_col = "value",
-            group_cols = c("plot_id","calculation"),
+            group_cols = c("plot_id"),
             funs=list(efficacite=efficacy))
 head(eff_par_placette)
 
 ```
 
-Il est possible d'avoir des situations plus complexes, ou l'efficacité est calculée par rapport au TNT de chaque bloc, ou même selon une table d'association qui associe à chaque placette 'plot_id' le TNT à prendre en référence, identifié dans ce cas par 'tnt_id' (qui est le 'plot_id' du TNT).
+### Efficacité calculée à l'aide d'une table d'association
+
+Il est possible d'avoir des situations plus complexes, ou l'efficacité est calculée par rapport au TNT de chaque bloc, ou même selon une table d'association qui associe à chaque placette `plot_id` le TNT à prendre en référence, identifié dans ce cas par `tnt_id` (c'est à dire le `plot_id` pour le TNT).
+
+#### Génération d'une table d'association
 
 ```{r}
-df_plot_tnt <- data.frame(tnt_id=rep(paste0("TNT",1:4),11),plot_id = sample(unique(F_I_placette$plot_id)))
+df_plot_tnt <- data.frame(tnt_id=rep(paste0("TNT",1:4),11),
+                          plot_id = sample(unique(F_I_placette$plot_id)))
 df_plot_tnt %>%
   dplyr::mutate(tnt_id = dplyr::case_when(
     plot_id == "TNT1" ~ "TNT1",
@@ -151,12 +243,26 @@ df_plot_tnt %>%
     TRUE ~ tnt_id,
   )) -> df_plot_tnt
 
+# visualisation de la table d'association
+head(df_plot_tnt)
+```
 
+#### Calcul de l'efficacité avec la table d'association
+
+```{r}
+# calcul de l'efficacité en tenant compte de l'association de chaque placette avec son TNT
 eff_placette_tnt <- resume_data(F_I_placette,
             var_col = "value",
-            group_cols = c("plot_id","calculation"),
+            group_cols = c("plot_id"),
             funs=list(efficacite=efficacy),
             df_tnt = df_plot_tnt)
 head(eff_placette_tnt)
-
 ```
+
+## Réaliser l'analyse statistiques
+
+## Réaliser les graphiques
+
+### Barplot
+
+### Heatmap
