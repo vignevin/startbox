@@ -75,25 +75,25 @@ harmonize_all_obs_data <- function(obs_data) {
 
 
 
-#' extract experimental traitement code from plot_id
+#' remove specific part of a character string
 #'
 #' @description
-#' This function remove the block code from a vector of class character.
+#' This function remove a specific string from a vector of class character.
 #' It works well when block code are letters and experimental treatment code are numbers or vice versa.
 #' TNT are directly recognized as TNT
 #' @param pid a vector of character
-#' @param blocks a vector of block codes (could be a pb if blocks code are a mix of letters and numbers...)
-#' @param separator a character that separate block code from the other part of the string, for example "_"
+#' @param to_remove a vector of codes to be removed from the string
+#' @param separator a character that separate parts of the string, for example "_"
 #'
-#' @returns the pid vector without blocks codes
+#' @returns a character vector of same lentgh as pid, without the "to_remove" part
 #'
 #' @examples
 #'
 #' blocks=c("A","B","C","D")
 #' pid=c("1A","1B","TNT3","2A","2D")
-#' remove_block_code(pid=pid,blocks=blocks)
+#' remove_code(pid=pid,to_remove=blocks)
 #' @export
-remove_block_code <- function(pid,blocks,separator=NULL) {
+remove_code <- function(pid,to_remove,separator=NULL) {
   # empty results vector with the same length as pid
   xp_trt_code <- vector(length = length(pid))
   # remove leading or trailing whitespace in case of
@@ -103,7 +103,7 @@ remove_block_code <- function(pid,blocks,separator=NULL) {
   # if element contains TNT, TNT is expected in the result vector
   xp_trt_code[select_TNT] <- "TNT"
   # f element does NOT contains, remove the block code
-  xp_trt_code[!select_TNT] <- gsub(paste0("[",paste(blocks,collapse = ","),"]"), "", pid[!select_TNT])
+  xp_trt_code[!select_TNT] <- gsub(paste0("[",paste(to_remove,collapse = ","),"]"), "", pid[!select_TNT])
   # remove the separator
   if (!is.null(separator)) {
     xp_trt_code[!select_TNT] <- gsub(separator, "", xp_trt_code[!select_TNT])

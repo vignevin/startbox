@@ -5,29 +5,40 @@
 #'
 #' @param data a dataframe to resume
 #' @param var_col character, the colname of the variable to plot
-#' @param group_cols the colname of the group
-#' @param funs statistic to plot, a vector of one or two statistic. by default c("mean","frequency")
-#' @param code_tnt a string to identify in TNT in the row of the dataframe by default "TNT"
-#' @param df_tnt a dataframe to associate tnt_id to bloc_id or plot_id. tnt_id is the plot_id of TNT and MUST be a col of df_tnt
+#' @param group_cols colnames for grouping
+#' @param funs vector of statistics to be applied, by default c("intensity","incidence")
+#' @param code_tnt for efficacy only : a string to identify in TNT in the row of the dataframe by default "TNT"
+#' @param df_tnt for efficacy only : a dataframe to associate tnt_id to bloc_id or plot_id. tnt_id is the plot_id of TNT and MUST be a col of df_tnt
 #'
-#' @returns a dataframe ready for plotting
+#' @returns a dataframe with group_cols and including a 'calculation' column which specifies the name of the functions applied to the variable and a 'value' column which gives the calculated values.
 #' @export
+#' @importFrom dplyr ensym syms filter group_by summarise n rename bind_rows
+
 resume_data <- function(
   data,
   var_col,
   group_cols,
-  funs = list(intensite = mean, frequence = frequency),
+  funs = list(intensite = intensity, frequence = incidence),
   code_tnt = "TNT",
-  df_tnt = NULL
+  df_tnt = NULL,
+  wide= FALSE
 ) {
   # flag_variable
-  flag_variable <- "variable" %in% colnames(data)
+  #flag_variable <- "variable" %in% colnames(data)
 
   # convert column argument to symbol
   var <- dplyr::ensym(var_col)
-  if (flag_variable) group_syms <- dplyr::syms(c(group_cols, "variable")) else
-    group_syms <- dplyr::syms(group_cols)
-  if (flag_variable) group_tnt <- dplyr::syms("calculation") else group_tnt <- NULL
+  #if (flag_variable) group_syms <- dplyr::syms(c(group_cols, "variable")) else
+  #  group_syms <- dplyr::syms(group_cols) ## to keep the col variable for traceabilty purpose
+
+  group_syms <- dplyr::syms(group_cols)
+  group_tnt <- NULL
+
+  # # if calculation is in colnames (means that this is already a df from a previous iteration of resume_data)
+  if ("calculation" %in% colnames(data)) {
+      group_tnt <- dplyr::syms("calculation") #
+      group_syms <- dplyr::syms(c(group_cols, "calculation"))
+  }
 
   # if df_tnt is not null, calculation by block_id given in df_tnt
   if (!is.null(df_tnt)) {
@@ -71,38 +82,65 @@ resume_data <- function(
       if (!is.null(group_tnt)) {
         data <- merge(data, mean_tnt)
       } else {
-        data$mean_tnt = as.numeric(mean_tnt)
+        data$mean_tnt = as.numeric(mean_tnt$mean_tnt)
       }
 
       resume <- data %>%
         dplyr::group_by(!!!group_syms) %>%
         dplyr::summarise(
           mean_tnt = mean(mean_tnt),
-          sd = sd({{ var }}, na.rm = TRUE),
           value = startbox::efficacy({{ var }}, value_tnt = mean_tnt),
           nb = dplyr::n(),
           .groups = "drop"
-        ) %>%
-        dplyr::mutate(
-          calculation = if ("calculation" %in% colnames(data))
-            paste(calculation, !!names(funs)[i]) else !!names(funs)[i]
         )
     } else {
       resume <- data %>%
         dplyr::group_by(!!!group_syms) %>%
         dplyr::summarise(
-          sd = sd({{ var }}, na.rm = TRUE),
           value = funs[[i]]({{ var }}),
           nb = dplyr::n(),
           .groups = "drop"
-        ) %>%
-        dplyr::mutate(
-          calculation = if ("calculation" %in% colnames(data))
-            paste(calculation, !!names(funs)[i]) else !!names(funs)[i]
         )
     }
+    ## to add calculation
+    default_name <- ifelse(var_col != "value",paste(names(funs)[i], var_col),names(funs)[i])
+    resume %>%
+      dplyr::mutate(
+        calculation = if("calculation" %in% colnames(.)) paste(default_name, calculation) else default_name
+        ) -> resume
+    ## to add to resume data
     data_resume <- dplyr::bind_rows(data_resume, resume)
-    if (!flag_variable) data_resume$variable = var_col
+    #if (!flag_variable) data_resume$variable = var_col
   }
   return(data_resume)
 } #end function
+
+
+
+
+#' Pivot wider a resume dataframe
+#'
+#' @param df_resume a dataframe returned by resume_data function
+#'
+#' @returns a dataframe in wider format
+#' @export
+#' @importFrom tidyr pivot_wider
+#'
+#' @examples
+resume_pivot_wider <- function(df_resume)
+{
+  if (!is.data.frame(df_resume)) {
+    stop("Input must be a data frame")
+  }
+
+  if ("calculation" %in% colnames(df_resume)  && "value" %in% colnames(df_resume))
+  {
+  df_resume %>%
+    tidyr::pivot_wider(names_from = calculation,values_from = value) -> df_resume
+  }
+  else {
+    stop("Your dataframe MUST include cols 'calculation' and 'value'")
+  }
+  return(df_resume)
+}
+
