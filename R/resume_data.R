@@ -20,8 +20,7 @@ resume_data <- function(
   group_cols,
   funs = list(intensite = intensity, frequence = incidence),
   code_tnt = "TNT",
-  df_tnt = NULL,
-  wide= FALSE
+  df_tnt = NULL
 ) {
 
   # local binding
