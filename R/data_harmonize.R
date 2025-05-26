@@ -75,38 +75,46 @@ harmonize_all_obs_data <- function(obs_data) {
 
 
 
-#' remove specific part of a character string
+#' Remove string in a character vector
 #'
 #' @description
-#' This function remove a specific string from a vector of class character.
-#' It works well when block code are letters and experimental treatment code are numbers or vice versa.
-#' TNT are directly recognized as TNT
-#' @param pid a vector of character
-#' @param to_remove a vector of codes to be removed from the string
+#' This function takes two character vectors of the same length and, for each position, removes the string in pattern[i] from vec[i], ignoring case.
+#' If either element at position i equals "TNT" (case-insensitive), it returns "TNT" for that position instead.
+#' @param vec a character vector
+#' @param pattern a character vector
 #' @param separator a character that separate parts of the string, for example "_"
 #'
-#' @returns a character vector of same lentgh as pid, without the "to_remove" part
+#' @returns a character vector
+#' @export
 #'
 #' @examples
-#'
-#' blocks=c("A","B","C","D")
-#' pid=c("1A","1B","TNT3","2A","2D")
-#' remove_code(pid=pid,to_remove=blocks)
-#' @export
-remove_code <- function(pid,to_remove,separator=NULL) {
-  # empty results vector with the same length as pid
-  xp_trt_code <- vector(length = length(pid))
-  # remove leading or trailing whitespace in case of
-  pid <- trimws(pid)
-  # identify all "TNT" in pid
-  select_TNT <- grepl("^TNT", pid)
-  # if element contains TNT, TNT is expected in the result vector
-  xp_trt_code[select_TNT] <- "TNT"
-  # f element does NOT contains, remove the block code
-  xp_trt_code[!select_TNT] <- gsub(paste0("[",paste(to_remove,collapse = ","),"]"), "", pid[!select_TNT])
-  # remove the separator
-  if (!is.null(separator)) {
-    xp_trt_code[!select_TNT] <- gsub(separator, "", xp_trt_code[!select_TNT])
+#' plot_id <- c("1a","2A","1B","tnt1","4c")
+#' plot_block <- c("A","A","B","1","C")
+#' remove_string_pairwise(vec = plot_id, pattern = plot_block)
+remove_string_pairwise <- function(vec, pattern,separator=NULL) {
+  # type validation
+  if (!is.character(vec)) {
+    stop("vec MUST be a character vector")
   }
-  return(xp_trt_code)
+  if (!is.character(pattern)) {
+    stop("pattern MUST be a character vector")
+  }
+
+  if (length(vec) != length(pattern)) {
+    stop("The 2 vectors MUST have the same length")
+  }
+
+  if (!is.null(separator)) {
+    pattern <- paste0(separator,pattern)
+  }
+
+  result <- mapply(function(x, y) {
+    if (grepl("TNT", x, ignore.case = TRUE) || grepl("TNT", y, ignore.case = TRUE)) {
+      return("TNT")
+    } else {
+      return(gsub(y, "", x, ignore.case = TRUE))
+    }
+  }, vec, pattern, USE.NAMES = FALSE)
+  print(paste("Strings extracted are :",paste(unique(result),collapse=" ; ")))
+  return(result)
 }
