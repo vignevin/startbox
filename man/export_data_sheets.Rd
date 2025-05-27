@@ -7,13 +7,14 @@
 export_data_sheets(self)
 }
 \arguments{
-\item{self}{The \code{user_data} R6 object}
+\item{self}{A \code{user_data} R6 object containing observation data and the active Excel file path.}
 }
 \value{
-The full path of the exported Excel file (invisible)
+Invisibly returns the full path to the exported Excel file.
 }
 \description{
-This function exports all observation data (\code{obs_data}) from a \code{user_data} object into a new Excel file.
-It preserves the original sheets and replaces/adds sheets named "data_XXX" accordingly.
-The new file is saved in the Downloads folder with an incremented version name.
+Exports all observation data stored in the \code{obs_data} slot of a \code{user_data} object into a new Excel file.
+Existing "data_*" sheets are replaced, and new ones are added. The resulting file is saved in the Downloads folder
+with an automatically generated timestamp in the filename. The function also updates the internal Excel file path
+and logs all export operations in the traceability system.
 }

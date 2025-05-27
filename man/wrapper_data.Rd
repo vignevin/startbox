@@ -2,17 +2,18 @@
 % Please edit documentation in R/data_excel.R
 \name{wrapper_data}
 \alias{wrapper_data}
-\title{Wrapper to load all data to do graphs}
+\title{Wrapper to load all relevant data for plotting}
 \usage{
 wrapper_data(self)
 }
 \arguments{
-\item{self}{A \code{user_data} object (R6 class) containing the path to the Excel file.}
+\item{self}{A \code{user_data} R6 object containing the Excel file path.}
 }
 \value{
-Invisibly returns invisible return, but file data loaded
+Invisibly returns nothing. Updates the object in place with observation and metadata.
 }
 \description{
-This function first imports all \verb{data_*} sheets from the Excel file into the \code{obs_data}
-Loads the metadata if the plot and method sheets are filled in.
+This wrapper function loads all observation sheets (sheets named "data_*") and associated metadata
+(e.g., "placette" and "modalite" sheets) from the Excel file into a \code{user_data} R6 object.
+It updates both \code{obs_data} and \code{metadata} accordingly.
 }

@@ -10,8 +10,7 @@ resume_data(
   group_cols,
   funs = list(intensite = intensity, frequence = incidence),
   code_tnt = "TNT",
-  df_tnt = NULL,
-  wide = FALSE
+  df_tnt = NULL
 )
 }
 \arguments{

@@ -4,16 +4,16 @@
 \alias{load_data_sheets}
 \title{Import "data_*" sheets from an Excel file into a \code{user_data} object}
 \usage{
-load_data_sheets(self, filepath)
+load_data_sheets(self)
 }
 \arguments{
-\item{self}{The \code{user_data} R6 object}
-
-\item{filepath}{Path to the Excel file to import}
+\item{self}{A \code{user_data} R6 object containing the Excel file path and observation data.}
 }
 \value{
-Updates \code{self$obs_data} with the newly imported sheets
+Updates \code{self$obs_data} with the newly loaded sheets. Returns \code{invisible(self$obs_data)}.
 }
 \description{
-Import "data_*" sheets from an Excel file into a \code{user_data} object
+This function loads all Excel sheets whose names start with "data_" from the Excel file stored in \code{self$excel_data_trial}.
+Each sheet is converted to a data.frame and stored in the \code{obs_data} list of the R6 object.
+If a sheet already exists in \code{obs_data}, it will be replaced and a trace will be logged.
 }

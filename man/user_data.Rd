@@ -3,16 +3,25 @@
 \name{user_data}
 \alias{user_data}
 \title{User Data R6 Class}
-\value{
-a  "UserData" object
-
-updated UserData
-Log a data-related action for traceability
-}
 \description{
-User Data R6 Class
+This R6 class is designed to manage experimental data, including observation sheets, metadata,
+and traceability logs. It provides methods to import, merge, and export data from Excel files
+while tracking operations for reproducibility.
+}
+\section{Public fields}{
+\if{html}{\out{<div class="r6-fields">}}
+\describe{
+\item{\code{excel_data_trial}}{Path to the current Excel file used for import/export operations.}
 
-User Data R6 Class
+\item{\code{combined_data}}{A data.frame containing all observation data merged and standardized.}
+
+\item{\code{obs_data}}{A named list of data.frames, each corresponding to a sheet or file containing observation data.}
+
+\item{\code{metadata}}{A list storing metadata tables, such as "placette" and "modalite".}
+
+\item{\code{traceability}}{A data.frame storing a log of all operations performed on the data (import, export, update, etc.).}
+}
+\if{html}{\out{</div>}}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -30,26 +39,27 @@ User Data R6 Class
 \if{html}{\out{<a id="method-UserData-new"></a>}}
 \if{latex}{\out{\hypertarget{method-UserData-new}{}}}
 \subsection{Method \code{new()}}{
-create a new "UserData" object
+Initializes a new \code{user_data} object. If no Excel file is provided, a default template is used.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{user_data$new(excel_model = NULL, excel_data_trial = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{user_data$new(trial_file = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{excel_model}}{excel template path}
-
-\item{\code{excel_data_trial}}{excel data trial path}
+\item{\code{trial_file}}{Optional. Path to the Excel file to load. If NULL, a default template is used.}
 }
 \if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A new instance of the \code{UserData} class.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-UserData-add_metadata"></a>}}
 \if{latex}{\out{\hypertarget{method-UserData-add_metadata}{}}}
 \subsection{Method \code{add_metadata()}}{
-Adds an element to the \code{metadata} list stored in the R6 object.
+Adds or updates a metadata element in the \code{metadata} slot.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{user_data$add_metadata(name, value)}\if{html}{\out{</div>}}
 }
@@ -71,29 +81,39 @@ None. Modifies the \code{metadata} list in-place.
 \if{html}{\out{<a id="method-UserData-add_obs"></a>}}
 \if{latex}{\out{\hypertarget{method-UserData-add_obs}{}}}
 \subsection{Method \code{add_obs()}}{
-Internal function to add or update a dataset of observations
+Adds a new observation dataset to \code{obs_data} or replaces an existing one.
+Automatically logs the operation and adds provenance columns.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{user_data$add_obs(name, df)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{user_data$add_obs(name, df, overwrite = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{name}}{the name of the observation to add}
+\item{\code{name}}{Name of the observation source.}
 
-\item{\code{df}}{dataframe with observation data.}
+\item{\code{df}}{A data.frame containing the observation data.}
+
+\item{\code{overwrite}}{Logical. If TRUE, replaces an existing entry with the same name.}
 }
 \if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+None. The object is modified in place.
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-UserData-show_obs_data"></a>}}
 \if{latex}{\out{\hypertarget{method-UserData-show_obs_data}{}}}
 \subsection{Method \code{show_obs_data()}}{
+Displays the first few rows of each observation dataset stored in \code{obs_data}.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{user_data$show_obs_data()}\if{html}{\out{</div>}}
 }
 
+\subsection{Returns}{
+A list of data.frames (head of each dataset).
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-UserData-log_trace"></a>}}
