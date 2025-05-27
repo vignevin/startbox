@@ -7,43 +7,46 @@
 #' If no observation data is present, returns only the joined metadata.
 #' @export
 prepare_final_data <- function(self) {
+  
+  self$combine_data_obs()
+  
   if (is.null(self$metadata$plot_desc) || is.null(self$metadata$moda_desc)) {
     message("plot_desc or moda_desc missing.")
     return(NULL)
   }
-
+  
   # Step 1. Join plot and modality
   self$metadata$plot_desc$factor_level_code <- as.character(self$metadata$plot_desc$factor_level_code)
   self$metadata$moda_desc$xp_trt_code <- as.character(self$metadata$moda_desc$xp_trt_code)
-
+  
   df_plot_moda <- dplyr::left_join(
     self$metadata$plot_desc,
     self$metadata$moda_desc,
     by = c("factor_level_code" = "xp_trt_code")
   )
-
+  
   # Explicitly add xp_trt_code
   df_plot_moda$xp_trt_code <- df_plot_moda$factor_level_code
-
+  
   # Step 2. Add observation data
   if (length(self$obs_data) == 0) {
     message("No observation data to join. Returning only plot + modality.")
     return(df_plot_moda)
   }
-
+  
   if (is.null(self$combined_data)) {
     message("Combined data is not ready yet. Call combine_data_obs() first.")
     return(NULL)
   }
-
+  
   df_obs <- self$combined_data
   df_obs$plot_id <- as.character(df_obs$plot_id)
   df_plot_moda$plot_id <- as.character(df_plot_moda$plot_id)
-
+  
   df_obs$plot_id <- harmonize_plot_id_format(df_obs$plot_id)
-
+  
   df_final <- dplyr::left_join(df_obs, df_plot_moda, by = "plot_id")
-
+  
   return(df_final)
 }
 
