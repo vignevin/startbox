@@ -172,16 +172,24 @@ get_template_excel <- function(destination_path=NULL) {
   }
 }
 
-#' Import "data_*" sheets from an Excel file into a `user_data` object
+#' @title Import "data_*" sheets from an Excel file into a `user_data` object
 #'
-#' @param self The `user_data` R6 object
-#' @param filepath Path to the Excel file to import
+#' @description
+#' This function loads all Excel sheets whose names start with "data_" from the Excel file stored in `self$excel_data_trial`.
+#' Each sheet is converted to a data.frame and stored in the `obs_data` list of the R6 object.
+#' If a sheet already exists in `obs_data`, it will be replaced and a trace will be logged.
 #'
-#' @return Updates `self$obs_data` with the newly imported sheets
+#' @param self A `user_data` R6 object containing the Excel file path and observation data.
+#'
+#' @return Updates `self$obs_data` with the newly loaded sheets. Returns `invisible(self$obs_data)`.
+#'
 #' @export
-load_data_sheets <- function(self, filepath) {
-  if (!file.exists(filepath)) {
-    stop("❌ File not found: ", filepath)
+load_data_sheets <- function(self) {
+  
+  filepath <- self$excel_data_trial
+  
+  if (is.null(filepath) || !file.exists(filepath)) {
+    stop("❌ No valid Excel file found in self$excel_data_trial.")
   }
   
   wb <- openxlsx2::wb_load(filepath)
@@ -209,6 +217,12 @@ load_data_sheets <- function(self, filepath) {
     # Ajoute une mention si la feuille existait déjà
     if (safe_sheet %in% names(self$obs_data)) {
       message("🔁 Sheet already loaded: ", safe_sheet, " → replaced.")
+      
+      filename_base <- basename(filepath)
+      self$log_trace(
+        operation = "update_data",
+        filename = paste0(filename_base, ":", safe_sheet),
+        description = "Updated sheet")
     } else {
       message("✅ New sheet loaded: ", safe_sheet)
     }
@@ -218,30 +232,24 @@ load_data_sheets <- function(self, filepath) {
     
   }
   
-  loaded_sheets <- names(self$obs_data)
-  self$log_trace(
-    operation = "import",
-    filename = paste(loaded_sheets, collapse = ", "))
-  
   invisible(self$obs_data)
 }
 
-#' Export observation sheets into a new Excel file version
+#' @title Export observation sheets into a new Excel file version
 #'
 #' @description
-#' This function exports all observation data (`obs_data`) from a `user_data` object into a new Excel file.
-#' It preserves the original sheets and replaces/adds sheets named "data_XXX" accordingly.
-#' The new file is saved in the Downloads folder with an incremented version name.
+#' Exports all observation data stored in the `obs_data` slot of a `user_data` object into a new Excel file.
+#' Existing "data_*" sheets are replaced, and new ones are added. The resulting file is saved in the Downloads folder
+#' with an automatically generated timestamp in the filename. The function also updates the internal Excel file path
+#' and logs all export operations in the traceability system.
 #'
-#' @param self The `user_data` R6 object
+#' @param self A `user_data` R6 object containing observation data and the active Excel file path.
 #'
-#' @return The full path of the exported Excel file (invisible)
+#' @return Invisibly returns the full path to the exported Excel file.
+#'
 #' @export
+
 export_data_sheets <- function(self) {
-  if (is.null(self$excel_data_trial) || !file.exists(self$excel_data_trial)) {
-    stop("❌ No Excel file loaded in user_data.")
-  }
-  
   wb <- openxlsx2::wb_load(self$excel_data_trial)
   
   for (i in seq_along(self$obs_data)) {
@@ -261,12 +269,9 @@ export_data_sheets <- function(self) {
     
     wb$add_worksheet(sheetname)
     wb$add_data_table(sheet = sheetname, x = df)
-    print(wb$sheet_names)
     message("✅ Sheet added: ", sheetname)
   }
   
-  
-  # Horodatage au format 2025-05-15_16h22
   timestamp <- format(Sys.time(), "%Y-%m-%d_%Hh%M")
   
   base_path <- normalizePath(self$excel_data_trial)
@@ -277,109 +282,90 @@ export_data_sheets <- function(self) {
   
   new_filename <- file.path(output_dir, paste0(name_no_ext, "_", timestamp, ".", ext))
   
-  wb$save(new_filename)
-  print(wb$sheet_names)
+  wb$save(file = new_filename)
   message("✅ New Excel file saved at: ", new_filename)
   
+  # Met à jour le chemin du fichier Excel actif
+  self$excel_data_trial <- new_filename
+  
+  # Ajout dans traceability
+  filename_base <- basename(new_filename)
   added_sheets <- names(self$obs_data)
-  self$log_trace(
-    operation = "export",
-    filename = paste(added_sheets, collapse = ", "))
+  
+  for (sheet in added_sheets) {
+    self$log_trace(
+      operation = "export",
+      filename = paste0(filename_base, ":", sheet),
+      description = "Sheet exported"
+    )
+  }
+  
+  # Mise à jour de la feuille "log" dans le fichier exporté
+  write_traceability_log(self)
   
   invisible(new_filename)
 }
 
-#' Wrapper to load all data to do graphs
+#' @title Wrapper to load all relevant data for plotting
 #'
-#' This function first imports all `data_*` sheets from the Excel file into the `obs_data` 
-#' Loads the metadata if the plot and method sheets are filled in.
+#' @description
+#' This wrapper function loads all observation sheets (sheets named "data_*") and associated metadata
+#' (e.g., "placette" and "modalite" sheets) from the Excel file into a `user_data` R6 object.
+#' It updates both `obs_data` and `metadata` accordingly.
 #'
-#' @param self A `user_data` object (R6 class) containing the path to the Excel file.
+#' @param self A `user_data` R6 object containing the Excel file path.
 #'
-#' @return Invisibly returns invisible return, but file data loaded
+#' @return Invisibly returns nothing. Updates the object in place with observation and metadata.
+#'
 #' @export
 wrapper_data <- function(self) {
   # Step 1: import the data_* sheets (update self$obs_data)
-  load_data_sheets(self, self$excel_data_trial)
+  load_data_sheets(self)
   
   #Step 2 : import the "placette" and "modalite" sheets (update self$metadata)
   load_metadata_sheets(self)
 }
 
-#' Standardize an experimental data file or data frame
+#' @title Write log to Excel file
 #'
-#' @param input_data A path to a .csv or .xlsx file to import, or a data.frame already loaded in R.
-#' @param lookup_table Optional. A named vector mapping original column names to standardized names. If NULL, a default mapping is used.
-#' 
-#' @import dplyr
-#' @import tidyr
-#' @importFrom stringr str_detect str_extract
-#' @importFrom readr read_csv2
-#' @importFrom readxl read_excel
-#' @importFrom tools file_ext
+#' @description
+#' This function writes the content of the `traceability` slot from a `user_data` object into a sheet named "log"
+#' in the associated Excel file. If the sheet already exists, the new entries are appended to the existing ones.
 #'
-#' @return A cleaned and structured data.frame, ready for use in downstream processing and analysis.
+#' @param self A `user_data` R6 object with a `traceability` data.frame and an `excel_data_trial` path.
+#'
+#' @return No return value. The Excel file is updated in place.
+#'
+#' @importFrom dplyr bind_rows
+#' @importFrom openxlsx2 wb_load wb_to_df wb_remove_worksheet wb_add_worksheet wb_add_data wb_save
+#'
 #' @export
-#'
-standardise_data <- function(input_data, lookup_table = c("Mildiou_Feuille" = "PM_LEAF_PC","Mildiou_Grappe"  = "PM_BER_PC","Oidium_Grappe"   = "UN_BER_PC","Oidium_Feuille"  = "UN_LEAF_PC","Stade.phénologique" = "bbch_stage","Stade.phenologique" = "bbch_stage","Stade phenologique" = "bbch_stage","Placette" = "plot_id","Bloc" = "block_id","Date" = "observation_date","Code.essai" = "experiment_id")) {
-  require(dplyr)
-  require(tidyr)
-  require(readr)
-  require(readxl)
-  require(tools)
+write_log <- function(self) {
+  filepath <- self$excel_data_trial
+  if (is.null(filepath) || !file.exists(filepath)) {
+    stop("❌ No valid Excel file found in self$excel_data_trial.")
+  }
   
+  wb <- openxlsx2::wb_load(filepath)
   
-  # --- Si c'est déjà un data.frame, on continue ---
-  if (is.data.frame(input_data)) {
-    df <- input_data
-  } else if (is.character(input_data)) {
-    # Lire les données
-    ext <- tools::file_ext(input_data)
+  if ("log" %in% wb$sheet_names) {
+    message("📑 Sheet 'log' already exists → appending new entries.")
     
-    # Lire les données selon l'extension
-    if (ext == "csv") {
-      df <- read.csv2(file = input_data, fileEncoding = "latin1")
-    } else if (ext == "xlsx") {
-      df <- readxl::read_excel(input_data, sheet = "data")
-    }
+    old_log <- openxlsx2::wb_to_df(wb, sheet = "log")
+    updated_log <- dplyr::bind_rows(old_log, self$traceability)
+    
+    wb$remove_worksheet(sheet = "log")
+    wb$add_worksheet(sheet = "log")
+    wb$add_data(sheet = "log", x = updated_log, withFilter = FALSE)
+    
   } else {
-    stop("❌ Format non supporté. Utilisez un fichier .csv ou .xlsx.")
+    message("🆕 Creating new sheet 'log'.")
+    wb$add_worksheet(sheet = "log")
+    wb$add_data(sheet = "log", x = self$traceability, withFilter = FALSE)
   }
   
-  # Vérifier si les colonnes Maladie, Organe et Valeur sont présentes
-  if (all(c("Maladie", "Organe", "Valeur") %in% names(df))) {
-    df <- df %>%
-      tidyr::pivot_wider(names_from = c(Maladie, Organe), values_from = Valeur)
-  }
-  
-  # Renommer les colonnes selon le lookup_table
-  noms_avant <- names(df)
-  noms_apres <- ifelse(noms_avant %in% names(lookup_table), lookup_table[noms_avant], noms_avant)
-  names(df) <- noms_apres
-  
-  # Formater la BBCH si présente sans dupliquer "BBCH"
-  if ("bbch_stage" %in% names(df)) {
-    df <- df %>%
-      dplyr::mutate(bbch_stage = ifelse(grepl("^BBCH", bbch_stage), bbch_stage, paste("BBCH", bbch_stage)))
-  }
-  
-  # Réorganiser les colonnes : standardisées d'abord, autres ensuite
-  colonnes_standard <- unname(lookup_table)   # ex: plot_id, block_id, etc.
-  colonnes_presentes <- names(df)
-  colonnes_autres <- setdiff(colonnes_presentes, colonnes_standard)
-  df <- df[, c(intersect(colonnes_standard, colonnes_presentes), colonnes_autres)]
-  
-  # Ajouter xp_trt_code à partir de plot_id
-  if ("plot_id" %in% names(df)) {
-    df$xp_trt_code <- dplyr::case_when(
-      grepl("^TNT", toupper(df$plot_id)) ~ "TNT",
-      stringr::str_detect(df$plot_id, "[0-9]+") ~ stringr::str_extract(df$plot_id, "[0-9]+"),
-      TRUE ~ NA_character_
-    )
-  }
-  
-  
-  return(df)
+  wb$save(file = filepath)
+  message("✅ Log written to 'log' sheet in ", basename(filepath))
 }
 
 
