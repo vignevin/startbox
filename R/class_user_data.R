@@ -1,51 +1,57 @@
-# create R6 class to store user_data
 #' @title User Data R6 Class
+#'
+#' @description
+#' This R6 class is designed to manage experimental data, including observation sheets, metadata,
+#' and traceability logs. It provides methods to import, merge, and export data from Excel files
+#' while tracking operations for reproducibility.
+#'
 #' @export
 user_data <- R6::R6Class(
   "UserData",
   public = list(
-    # excel template path
-    excel_model = NULL,
-    # data_trial excel
+    #' @field excel_data_trial Path to the current Excel file used for import/export operations.
     excel_data_trial = NULL,
-    # combined data
+    
+    #' @field combined_data A data.frame containing all observation data merged and standardized.
     combined_data = NULL,
-    # obs_data is the list of dataframes with observation data. each list item has the name of the source file
-    # if the item is a sheet of an excel file, the name will be filename:sheetname
+    
+    #' @field obs_data A named list of data.frames, each corresponding to a sheet or file containing observation data.
     obs_data = list(),
+    
+    #' @field metadata A list storing metadata tables, such as "placette" and "modalite".
     metadata = list(),
+    
+    #' @field traceability A data.frame storing a log of all operations performed on the data (import, export, update, etc.).
     traceability = NULL,
     
-    
     #' @description
-    #' create a new "UserData" object
+    #' Initializes a new `user_data` object. If no Excel file is provided, a default template is used.
     #'
-    #'
-    #'
-    #' @param excel_model excel template path
-    #' @param excel_data_trial excel data trial path
-    #'
-    #' @returns a  "UserData" object
-    initialize = function(excel_model = NULL, excel_data_trial = NULL) {
-      if (is.null(excel_model)) {
-        self$excel_model <- system.file("extdata", "template.xlsx", package = "startbox")
+    #' @param trial_file Optional. Path to the Excel file to load. If NULL, a default template is used.
+    #' 
+    #' @return A new instance of the `UserData` class.
+    initialize = function(trial_file = NULL) {
+      # If no file is provided, use the default template
+      if (is.null(trial_file)) {
+        self$excel_data_trial <- system.file("extdata", "template.xlsx", package = "startbox")
+        message("📄 No file provided. Using default template.")
       } else {
-        self$excel_model <- excel_model
+        self$excel_data_trial <- trial_file
+        message("📄 Using provided Excel file: ", basename(trial_file))
       }
-      self$excel_data_trial <- excel_data_trial
       
       self$traceability <- data.frame(
         datetime = character(),
         operation = character(),
         filename = character(),
         description = character(),
+        package_version = character(),
         stringsAsFactors = FALSE
       )
-      
     },
     
     #' @description
-    #' Adds an element to the `metadata` list stored in the R6 object.
+    #' Adds or updates a metadata element in the `metadata` slot.
     #'
     #' @param name A single character string specifying the name of the element to add.
     #' @param value The object to add (e.g., a data.frame, list, or other metadata).
@@ -58,36 +64,57 @@ user_data <- R6::R6Class(
       self$metadata[[name]] <- value
     },
     
-    # Add or update observation dataset
     #' @description
-    #' Internal function to add or update a dataset of observations
+    #' Adds a new observation dataset to `obs_data` or replaces an existing one.
+    #' Automatically logs the operation and adds provenance columns.
     #'
-    #' @param name the name of the observation to add
-    #' @param df dataframe with observation data.
-    #'
-    #' @returns updated UserData
-    add_obs = function(name, df) {
+    #' @param name Name of the observation source.
+    #' @param df A data.frame containing the observation data.
+    #' @param overwrite Logical. If TRUE, replaces an existing entry with the same name.
+    #' 
+    #' @return None. The object is modified in place.
+    add_obs = function(name, df, overwrite = FALSE) {
+      filename_base <- name  # 🔹 Juste le nom du fichier (pas de ":" ni de feuille)
+      
       if (name %in% names(self$obs_data)) {
-        message(paste("Updating element:", name))
+        if (!overwrite) {
+          message(paste("❌ Element already exists and will not be overwritten:", name))
+          return(invisible(NULL))
+        } else {
+          message(paste("🔁 Updating existing element:", name))
+          
+          self$log_trace(
+            operation = "update_data",
+            filename = filename_base,
+            description = "Observation updated via add_obs"
+          )
+        }
       } else {
-        message(paste("Adding a new element:", name))
+        message(paste("✅ Adding a new element:", name))
+        
+        self$log_trace(
+          operation = "import",
+          filename = filename_base,
+          description = "New observation added via add_obs"
+        )
       }
       
-      # Add the columns prov_name and prov_date
+      # Add provenance info
       df$prov_name <- as.character(name)
       df$prov_date <- format(Sys.Date(), "%d/%m/%Y")
       
       self$obs_data[[name]] <- df
     },
     
-    # Method for displaying elements
+    #' @description
+    #' Displays the first few rows of each observation dataset stored in `obs_data`.
+    #'
+    #' @return A list of data.frames (head of each dataset).
     show_obs_data = function() {
       lapply(self$obs_data, head)
     },
     
     
-    #' Log a data-related action for traceability
-    #'
     #' @description
     #' This function adds a new entry to the `traceability` log stored in the R6 object.
     #' It records the type of operation, the target file or sheet name(s), and the timestamp.
@@ -97,11 +124,18 @@ user_data <- R6::R6Class(
     #'
     #' @return No return value. This function updates the internal `traceability` data frame.
     log_trace = function(operation, filename, description = "") {
+      package_version <- tryCatch({
+        paste0("startbox v", as.character(utils::packageVersion("startbox")))
+      }, error = function(e) {
+        "startbox vUNKNOWN"
+      })
+      
       new_entry <- data.frame(
         datetime = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
         operation = operation,
         filename = filename,
         description = description,
+        package_version = package_version,
         stringsAsFactors = FALSE
       )
       
@@ -125,13 +159,11 @@ user_data <- R6::R6Class(
       # Prepare Excel trial file if necessary
       prepare_excel_model(self, filename = "testnomfichier.xlsx", directory = "C:/Users/hmaire.VIGNEVIN/OneDrive - IFV/Bureau")
       # Load placette and modalite sheets if present
-      read_metadata_sheets(self)
+      load_metadata_sheets(self)
       
       # Merge with existing 'data' sheet if it exists
       wb <- openxlsx2::wb_load(self$excel_data_trial)
       combined <- merge_with_existing_data(wb, combined)
-      combined <- combined[rowSums(is.na(combined) | combined == "") != ncol(combined), ]
-      
       
       self$combined_data <- combined
       return(combined)
