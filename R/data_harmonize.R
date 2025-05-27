@@ -10,7 +10,7 @@
 #'
 #' @return A dataframe with harmonized column types.
 #' @export
-harmonize_column_types <- function(df, types_map = NULL, dictionary_path = "inst/extdata/star_dictionary.csv") {
+harmonize_column_types <- function(df, types_map = NULL, dictionary_path = system.file("extdata", "star_dictionary.csv", package = "startbox")) {
 
   if (is.null(types_map)) {
     types_df <- read.csv2(dictionary_path, stringsAsFactors = FALSE)
