@@ -21,26 +21,27 @@ library(startbox)
 
 # Manipulation des données
 
-## Importer un fichier Excel standard
+Le package `{startbox}` propose plusieurs fonctions pour charger, importer et exporter des données en interaction avec un fichier standard Excel.
 
-Le package fonctionne avec un fichier Excel standard, qui stocke les données descriptives de l'essai (les modalités mises en place, les caractéristiques de la parcelles, le plan d'expérience) et les données observées.
+## Exporter le fichier Excel standard
 
-Un modèle de fichier standard est accessible avec la fonction get_template_excel().
+Le package fonctionne avec un fichier Excel standard, qui stocke les données descriptives de l'essai (les modalités mises en place, les caractéristiques de la parcelle, le plan d'expérience) et les données observées. Ce modèle de fichier standard est accessible avec la fonction get_template_excel().
 
 ```{r}
 #| label: get_template_excel
+#| include: false
 
 startbox::get_template_excel()
 
 ```
 
-## Gestion des données d'observation dans Excel
+Vous pourrez compléter ultérieurement ce fichier directement dans Excel.
 
-Le package `{startbox}` propose plusieurs fonctions pour faciliter l'import, l'export et la mise à jour des feuilles d'observations (`data_*`) dans un fichier Excel d'essai.
+## Créer un objet `user_data`
 
-### Créer un objet `user_data`
+Le package fonctionne avec un objet de classe `user_data`. Cet objet permet de manipuler dans l'environnement R les données d'observations et les métadonnées associées à un essai.
 
-L'objet principal utilisé est `user_data`, qui permet de centraliser les données d'observations et les métadonnées associées à un essai.
+**La première étape est de créer cet objet.**
 
 Deux cas sont possibles lors de la création :
 
@@ -53,79 +54,134 @@ Deux cas sont possibles lors de la création :
 mydata <- user_data$new()
 
 # Cas 2 : création d'un objet avec fichier Excel existant
-mydata2 <- user_data$new(trial_file = system.file("extdata","data_standard_ex.xlsx",package="startbox"))
+mydata2 <- user_data$new(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
 ```
 
-### Ajouter manuellement des observations dans l'objet `user_data`
+## Charger des données
 
-Il est possible d'ajouter directement un tableau de données (`data.frame`) dans l'attribut `obs_data` de l'objet `user_data` pour pouvoir le charger dans son fichiequi répertorie les observations de son essais.
+### Charger les métadonnées
 
-Cela peut être pratique si l'utilisateur travaille avec un fichier `.csv` brut ou des données créées directement dans R.
+Les feuilles de métadonnées (placette, modalite) peuvent être chargées dans l'environnement R à tout moment à l'aide de la fonction `load_metadata_sheets`, en passant en argument l'objet `user_data`. Il est nécessaire qu'un fichier ait été transmit dans excel_data_trial sinon ça ne fonctionnera pas.
+
+Elles sont stockées dans l'objet de classe `user_data.`
+
+```{r}
+load_metadata_sheets(mydata2)
+```
+
+### Charger les feuilles d'observations
+
+La fonction `import_data_sheets` permet de charger dans l'environnement de travail toutes les feuilles dont le nom commence par 'data\_'.
+
+Elles sont stockées dans l'objet de classe `user_data.`
+
+```{r}
+load_data_sheets(mydata2)
+
+```
+
+### Utiliser le wrapper complet pour charger les données
+
+Pour automatiser l'ensemble des étapes de chargement des données, la fonction `wrapper_data` permet de réaliser les fonctions `load_metadata_sheets` et `load_data_sheets` en une seule commande.
+
+```{r}
+wrapper_data(mydata2)
+```
+
+## Importer des données d'observation
+
+### Cas de données déjà standardisées
+
+Il est possible d'ajouter directement un tableau de données (`data.frame`) dans l'attribut `obs_data` de l'objet `user_data.` Cela peut être pratique si l'utilisateur travaille avec un fichier `.csv` brut ou des données créées directement dans R. Pour être utilisable par la suite, le tableau de données doit contenir les colonnes plot_id, observation_date et au moins une colonne avec une variable mesurée.
 
 ```{r}
 # Exemple : chargement d'un fichier CSV local
-myfilepath <- system.file("extdata","teissonniere_dataG1_2024.csv",package="startbox")
+myfilepath <- system.file("extdata","teisso_2024_dataF2.csv",package="startbox")
 data1 <- read.csv2(myfilepath)
 
 # Ajout direct dans l'objet user_data avec le nom du fichier
 mydata2$add_obs(name = basename(myfilepath), df = data1)
 ```
 
-### Importer les métadonnées
+L'utilisateur pourra ultérieurement exporter le fichier Excel standardisé avec une nouvelle feuille qui contiendra ces données d'observations.
 
-Les feuilles de métadonnées (placette, modalite) peuvent être importées à tout moment à l'aide de la fonction `load_metadata_sheets`, en passant en argument l'objet `user_data`. Il est nécessaire qu'un fichier ait été transmit dans excel_data_trial sinon ça ne fonctionnera pas.
+### Cas des données Topvigne
+
+Les données d'observation peuvent aussi provenir de l'application Topvigne.
 
 ```{r}
-load_metadata_sheets(mydata2)
+#| label: load_obs
+
+file_path <- system.file("extdata","maladie_teisso_2024_11h12min F1 17.06.csv",package="startbox")
+
+# verification si le fichier est issu de topvigne
+check_topvigne_csv(filepath = file_path)
 ```
 
-### Importer les feuilles d'observations
-
-La fonction `import_data_sheets` permet d'importer toutes les feuilles dont le nom commence par data\_ dans l'attribut obs_data.
+Il est possible d'utiliser la fonction `standardise_topvigne_csv` qui permet de transformer et standardiser les données collectées avec Topvigne.
 
 ```{r}
-load_data_sheets(mydata2,system.file("extdata","data_standard_ex.xlsx",package="startbox"))
-
+# importation 
+data_F1 <- standardise_topvigne_csv(file_path)
+head(data_F1)
 ```
 
-### Exporter les données d'observations
-
-La fonction `export_data_sheets` permet de créer une nouvelle version du fichier Excel en y ajoutant les feuilles data présentes dans l'objet. Le fichier est exporté dans le dossier Téléchargements avec un horodatage automatique.
+Les données sont ensuite ajoutées à l'objet `user_data`.
 
 ```{r}
+# Ajout direct dans l'objet user_data avec le nom du fichier
+mydata2$add_obs(name = "F1", df = data_F1)
+```
+
+## Exporter les données
+
+La fonction `export_data_sheets` permet de créer une nouvelle version du fichier Excel en y ajoutant les feuilles data présentes dans l'objet. Le fichier est exporté avec un horodatage automatique.
+
+```{r}
+#| include: false
+#| 
 export_data_sheets(mydata2)
-```
-
-### Utiliser le wrapper complet
-
-Pour automatiser l'ensemble des étapes (import des données data\_\* puis export vers un nouveau fichier Excel), la fonction `wrapper_data` permet de réaliser ces deux actions en une seule commande.
-
-```{r}
-wrapper_data(mydata2)
 ```
 
 # Calculer les tableaux de résumé
 
-## Chargement d'un jeu de données
+Le jeu de données d'observation qui sera utilisé à titre d'exemple est le jeu de données d'observation des notations brutes de mildiou sur feuilles réalisées le 17 juin 2024, préalablement importé dans `mydata2`.
 
-Un jeu de données d'observation est accessible dans le fichier "maladie_Bayer_11h12min F1 17.06_ASC.csv", proposé comme exemple dans le package {startbox}. Ce jeu de données d'observation contient des notations brutes de mildiou sur feuilles réalisées le 17 juin 2024.
+Par commodité, il est stocké dans le `dataframe` data_F1.
 
 ```{r}
-#| lable: load_obs
-
-file_path <- system.file("extdata","maladie_Bayer_11h12min F1 17.06_ASC.csv",package="startbox")
-data_F1 <- utils::read.csv2(file_path, fileEncoding = "latin1")
+data_F1 <- mydata2$obs_data$F1
 head(data_F1)
 ```
 
-Avant de poursuivre, il est possible d'extraire quelques informations de plot_id pour enrichir notre tableau avec le code du traitement et le code du bloc
+### Préparation des données avant analyse
+
+Pour analyser les données observées, il est nécessaire d'associer chaque placette à une modalité expérimentale.
+
+#### Par association avec les tables descriptives de l'essai
+
+#### Par décodage des identifiants de placette \[non recommandé\]
+
+Si la table d'association entre les identifiants des placettes et les modalités n'existe pas, il est possible de décoder les identifiants des placettes pour en extraire la partie concernant le code de la modalité.
+
+Dans notre exemple, les identifiants de placette `plot_id` ont un codage du type "1A", ou 1 est le code de la modalité, et A le code du bloc. Les noms de bloc sont donnés dans la colonne `plot_block`
+
+La fonction `remove_string_pairwise` permet d'enlever le nom du bloc de `plot_id`.
+
+Avant de poursuivre, il est possible d'extraire quelques informations de plot_id pour enrichir notre tableau avec le code du traitement et le code du bloc.
 
 ```{r}
 # recuperation des codes des traitements dans la colonne xp_trt_code
-data_F1$xp_trt_code <- remove_string_pairwise(vec=data_F1$Placette,pattern = data_F1$Bloc)
+data_F1$xp_trt_code <- remove_string_pairwise(vec=data_F1$plot_id,
+                                              pattern = data_F1$plot_block)
 
 head(data_F1)
 ```
+
+::: callout-caution
+Cette fonction est à utiliser avec précaution ! Dans tous les cas, il est préférable de **compléter les feuilles placette et modalité** dans le fichier standard. Cela permet en outre d'enrichir les données avec le nom des traitements et la position des placettes.
+:::
+
 
 ## Fonctions de calcul
 
@@ -170,7 +226,7 @@ Le résultat est un dataframe, incluant une colonne `calculation` qui précise l
 
 F_I_placette <- resume_data(data_F1,
                             var_col = "PM_LEAF_PC", 
-                            group_cols = c("plot_id","xp_trt_code","block_id"),
+                            group_cols = c("plot_id","xp_trt_code","plot_block"),
                             funs = list(intensite = intensity, frequence = incidence))
 head(F_I_placette)
 ```
@@ -254,35 +310,43 @@ eff_placette_tnt <- resume_data(F_I_placette,
 head(eff_placette_tnt)
 ```
 
-## Réaliser l'analyse statistiques
+# Réaliser l'analyse statistique
 
 Le package `{startbox}` propose des fonctions pour appliquer automatiquement des tests statistiques (ANOVA, Kruskal-Wallis) sur les variables observées.
 
-La fonction `test_stats()` permet de comparer les modalités de traitement en fonction de la variable d'intérêt.
-Elle retourne le test utilisé, la p_valeur du test et les rgoupes des modalites dans le dataframe. 
+La fonction `test_stats()` permet de comparer les modalités de traitement en fonction de la variable d'intérêt. Elle retourne le test utilisé, la p_valeur du test et les groupes des modalites dans le dataframe.
 
 ```{r}
-test_stats(data = df_complet)
+## tableau bilan sur la fréquence
+F_plot <- resume_data(data_F1,
+                            var_col = "PM_LEAF_PC", 
+                            group_cols = c("plot_id","xp_trt_code","plot_block"),
+                            funs = list(frequence = incidence))
+
+
+
+test_stats(data = F_plot, value_col = "value")
 ```
 
-
-## Réaliser les graphiques
+# Réaliser les graphiques
 
 Les données résumées ou les résultats statistiques peuvent être visualisés sous forme de barplots ou de heatmaps pour une meilleure lecture des différences entre modalités. Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction prepare_final_data car il faut joindre toutes les données du fichiers (metadata et feuille "data\_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalite par exemple.
 
 ```{r}
-mydata <- user_data$new(trial_file = "D:/IFV/App Rshiny (Hervé)/data_standard_ex.xlsx")
-myfilepath = "C:/Users/hmaire.VIGNEVIN/OneDrive - IFV/Documents/startbox/misc/teissonniere_dataF1_2024.csv"
-data1 <- read.csv2(myfilepath)
-# Add the data frame
-mydata$add_obs(name = basename(myfilepath), df = data1, overwrite = TRUE)
-df_complet <- prepare_final_data(mydata)
+
+df_complet <- merge(F_plot, mydata2$metadata$moda_desc, all.x=T)
+df_complet <- merge(df_complet, mydata2$metadata$plot_desc, all.x=T)
+head(df_complet)
 ```
 
-### Heatmap
+## Barplot
+
+
+## Heatmap
 
 La fonction plot_xpheat() permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs. Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
 
 ```{r}
-plot_xpheat(df_complet, variable = "PM_LEAF_PC")
+plot_xpheat(df_complet, variable = "value",
+            orientation="horizontal")
 ```

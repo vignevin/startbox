@@ -9,7 +9,7 @@ standardise_topvigne_csv(
   lookup_table = c(Mildiou_Feuille = "PM_LEAF_PC", Mildiou_Grappe = "PM_BER_PC",
     Oidium_Grappe = "UN_BER_PC", Oidium_Feuille = "UN_LEAF_PC", Stade.phénologique =
     "bbch_stage", Stade.phenologique = "bbch_stage", `Stade phenologique` = "bbch_stage",
-    Placette = "plot_id", Bloc = "block_id", Date = "observation_date", Code.essai =
+    Placette = "plot_id", Bloc = "plot_block", Date = "observation_date", Code.essai =
     "experiment_id")
 )
 }

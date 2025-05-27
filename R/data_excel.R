@@ -185,22 +185,22 @@ get_template_excel <- function(destination_path=NULL) {
 #'
 #' @export
 load_data_sheets <- function(self) {
-  
+
   filepath <- self$excel_data_trial
-  
+
   if (is.null(filepath) || !file.exists(filepath)) {
     stop("❌ No valid Excel file found in self$excel_data_trial.")
   }
-  
+
   wb <- openxlsx2::wb_load(filepath)
   sheets <- wb$sheet_names
-  
+
   data_sheets <- sheets[grepl("^data_", sheets)]
   if (length(data_sheets) == 0) {
     message("ℹ️ No sheets starting with 'data_' found in file.")
     return(invisible(NULL))
   }
-  
+
   for (sheet in data_sheets) {
     df <- tryCatch({
       openxlsx2::wb_to_df(wb, sheet = sheet)
@@ -208,16 +208,16 @@ load_data_sheets <- function(self) {
       warning(paste("⚠️ Could not read sheet:", sheet))
       return(NULL)
     })
-    
+
     if (is.null(df)) next
-    
+
     # Nettoyage du nom : on supprime les caractères interdits (par sécurité)
     safe_sheet <- gsub("[:\\\\/*?\\[\\]]", "_", sheet)
-    
+
     # Ajoute une mention si la feuille existait déjà
     if (safe_sheet %in% names(self$obs_data)) {
       message("🔁 Sheet already loaded: ", safe_sheet, " → replaced.")
-      
+
       filename_base <- basename(filepath)
       self$log_trace(
         operation = "update_data",
@@ -226,12 +226,12 @@ load_data_sheets <- function(self) {
     } else {
       message("✅ New sheet loaded: ", safe_sheet)
     }
-    
+
     self$obs_data[[safe_sheet]] <- df
-    
-    
+
+
   }
-  
+
   invisible(self$obs_data)
 }
 
@@ -251,47 +251,47 @@ load_data_sheets <- function(self) {
 
 export_data_sheets <- function(self) {
   wb <- openxlsx2::wb_load(self$excel_data_trial)
-  
+
   for (i in seq_along(self$obs_data)) {
     original_name <- names(self$obs_data)[i]
     df <- self$obs_data[[i]]
-    
+
     sheetname <- if (grepl("^data_", original_name)) {
       original_name
     } else {
       paste0("data_", tools::file_path_sans_ext(basename(original_name)))
     }
-    
+
     if (sheetname %in% wb$sheet_names) {
       openxlsx2::wb_remove_worksheet(wb, sheet = sheetname)
       message("🔁 Sheet replaced: ", sheetname)
     }
-    
+
     wb$add_worksheet(sheetname)
     wb$add_data_table(sheet = sheetname, x = df)
     message("✅ Sheet added: ", sheetname)
   }
-  
+
   timestamp <- format(Sys.time(), "%Y-%m-%d_%Hh%M")
-  
+
   base_path <- normalizePath(self$excel_data_trial)
   base_file <- basename(base_path)
   name_no_ext <- tools::file_path_sans_ext(base_file)
   ext <- tools::file_ext(base_file)
   output_dir <- file.path(Sys.getenv("USERPROFILE"), "Downloads")
-  
+
   new_filename <- file.path(output_dir, paste0(name_no_ext, "_", timestamp, ".", ext))
-  
+
   wb$save(file = new_filename)
   message("✅ New Excel file saved at: ", new_filename)
-  
+
   # Met à jour le chemin du fichier Excel actif
   self$excel_data_trial <- new_filename
-  
+
   # Ajout dans traceability
   filename_base <- basename(new_filename)
   added_sheets <- names(self$obs_data)
-  
+
   for (sheet in added_sheets) {
     self$log_trace(
       operation = "export",
@@ -299,10 +299,10 @@ export_data_sheets <- function(self) {
       description = "Sheet exported"
     )
   }
-  
+
   # Mise à jour de la feuille "log" dans le fichier exporté
-  write_traceability_log(self)
-  
+  write_log(self)
+
   invisible(new_filename)
 }
 
@@ -321,7 +321,7 @@ export_data_sheets <- function(self) {
 wrapper_data <- function(self) {
   # Step 1: import the data_* sheets (update self$obs_data)
   load_data_sheets(self)
-  
+
   #Step 2 : import the "placette" and "modalite" sheets (update self$metadata)
   load_metadata_sheets(self)
 }
@@ -345,25 +345,25 @@ write_log <- function(self) {
   if (is.null(filepath) || !file.exists(filepath)) {
     stop("❌ No valid Excel file found in self$excel_data_trial.")
   }
-  
+
   wb <- openxlsx2::wb_load(filepath)
-  
+
   if ("log" %in% wb$sheet_names) {
     message("📑 Sheet 'log' already exists → appending new entries.")
-    
+
     old_log <- openxlsx2::wb_to_df(wb, sheet = "log")
     updated_log <- dplyr::bind_rows(old_log, self$traceability)
-    
+
     wb$remove_worksheet(sheet = "log")
     wb$add_worksheet(sheet = "log")
     wb$add_data(sheet = "log", x = updated_log, withFilter = FALSE)
-    
+
   } else {
     message("🆕 Creating new sheet 'log'.")
     wb$add_worksheet(sheet = "log")
     wb$add_data(sheet = "log", x = self$traceability, withFilter = FALSE)
   }
-  
+
   wb$save(file = filepath)
   message("✅ Log written to 'log' sheet in ", basename(filepath))
 }

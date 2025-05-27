@@ -7,7 +7,7 @@
 harmonize_column_types(
   df,
   types_map = NULL,
-  dictionary_path = "inst/extdata/star_dictionary.csv"
+  dictionary_path = system.file("extdata", "star_dictionary.csv", package = "startbox")
 )
 }
 \arguments{
