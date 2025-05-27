@@ -53,7 +53,7 @@ Deux cas sont possibles lors de la création :
 mydata <- user_data$new()
 
 # Cas 2 : création d'un objet avec fichier Excel existant
-mydata2 <- user_data$new(excel_data_trial = system.file("extdata","data_standard_ex.xlsx",package="startbox"))
+mydata2 <- user_data$new(trial_file = system.file("extdata","data_standard_ex.xlsx",package="startbox"))
 ```
 
 ### Ajouter manuellement des observations dans l'objet `user_data`
@@ -108,26 +108,21 @@ wrapper_data(mydata2)
 
 ## Chargement d'un jeu de données
 
-Un jeu de données d'observation est accessible dans le fichier "data_standard_ex.xlsx", proposé comme exemple dans le package {startbox}. Ce jeu de données d'observation contient des notations brutes d'oïdium sur feuilles réalisées le 05 juin 2024.
+Un jeu de données d'observation est accessible dans le fichier "maladie_Bayer_11h12min F1 17.06_ASC.csv", proposé comme exemple dans le package {startbox}. Ce jeu de données d'observation contient des notations brutes de mildiou sur feuilles réalisées le 17 juin 2024.
 
 ```{r}
 #| lable: load_obs
 
-file_path <- system.file("extdata","data_standard_ex.xlsx",package="startbox")
-data_F1 <- openxlsx2::read_xlsx(file_path,sheet ="data_F1")
+file_path <- system.file("extdata","maladie_Bayer_11h12min F1 17.06_ASC.csv",package="startbox")
+data_F1 <- utils::read.csv2(file_path, fileEncoding = "latin1")
 head(data_F1)
 ```
 
 Avant de poursuivre, il est possible d'extraire quelques informations de plot_id pour enrichir notre tableau avec le code du traitement et le code du bloc
 
 ```{r}
-# recuperation des codes des traitements
-data_F1$xp_trt_code <- remove_code(pid=data_F1$plot_id,
-                                   to_remove=c("A","B","C","D"))  
-
-## recuperation des blocs
-data_F1$block_id <- remove_code(pid=data_F1$plot_id,
-                                to_remove=1:10)
+# recuperation des codes des traitements dans la colonne xp_trt_code
+data_F1$xp_trt_code <- remove_string_pairwise(vec=data_F1$Placette,pattern = data_F1$Bloc)
 
 head(data_F1)
 ```
@@ -139,7 +134,7 @@ head(data_F1)
 Le tableau ci-dessous résume les fonctions intégrées au package :
 
 | Calcul | Fonction {startbox} | Description |
-|------------------|-------------------|--------------------------------------------------|
+|--------------------------|------------------------|------------------------|
 | Fréquence d'attaque | `incidence` | Cette fonction calcule la fréquence de la maladie dans la population observée, c'est à dire le nombre d'unités échantillonnées (feuilles, régimes, plantes…) atteintes exprimé en pourcentage du nombre total d'unités évaluées. |
 | Intensité d'attaque | `intensity` | Cette fonction calcule l'intensité de la maladie, comme la valeur moyenne des mesures de séverité. L'intensité de la maladie correspond à la quantité de maladie présente dans la population, exprimée en pourcentage. |
 | Efficacité | `efficacy` | Cette fonction calcule l'efficacité, c'est à dire le niveau de réduction des organismes nuisibles ciblés ou des dommages qu'ils causent à la plante, après application d'un traitement, par rapport à un témoin non traité. L'efficacité est exprimée en pourcentage. |
@@ -261,8 +256,41 @@ head(eff_placette_tnt)
 
 ## Réaliser l'analyse statistiques
 
+Le package `{startbox}` propose des fonctions pour appliquer automatiquement des tests statistiques (ANOVA, Kruskal-Wallis) sur les variables observées.
+
+La fonction `test_stats()` permet de comparer les modalités de traitement en fonction de la variable d'intérêt.
+
+```{r}
+res_stats <- test_stats(
+  data = F_I_placette,
+  var_col = "value",
+  group_col = "plot_id",
+  block_col = NULL,
+  group_method = "SNK"
+)
+
+head(res_stats)
+
+```
 ## Réaliser les graphiques
 
-### Barplot
+Les données résumées ou les résultats statistiques peuvent être visualisés sous forme de barplots ou de heatmaps pour une meilleure lecture des différences entre modalités.
+Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction prepare_final_data car il faut joindre toutes les données du fichiers (metadata et feuille "data_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalite par exemple.
 
+```{r}
+mydata <- user_data$new(trial_file = "D:/IFV/App Rshiny (Hervé)/data_standard_ex.xlsx")
+myfilepath = "C:/Users/hmaire.VIGNEVIN/OneDrive - IFV/Documents/startbox/misc/teissonniere_dataF1_2024.csv"
+data1 <- read.csv2(myfilepath)
+# Add the data frame
+mydata$add_obs(name = basename(myfilepath), df = data1, overwrite = TRUE)
+df_complet <- prepare_final_data(mydata)
+```
 ### Heatmap
+
+La fonction plot_xpheat() permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs.
+Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
+
+```{r}
+plot_xpheat(df_complet, variable = "PM_LEAF_PC")
+```
+
