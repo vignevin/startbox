@@ -134,7 +134,7 @@ head(data_F1)
 Le tableau ci-dessous résume les fonctions intégrées au package :
 
 | Calcul | Fonction {startbox} | Description |
-|--------------------------|------------------------|------------------------|
+|-------------------------|------------------------|------------------------|
 | Fréquence d'attaque | `incidence` | Cette fonction calcule la fréquence de la maladie dans la population observée, c'est à dire le nombre d'unités échantillonnées (feuilles, régimes, plantes…) atteintes exprimé en pourcentage du nombre total d'unités évaluées. |
 | Intensité d'attaque | `intensity` | Cette fonction calcule l'intensité de la maladie, comme la valeur moyenne des mesures de séverité. L'intensité de la maladie correspond à la quantité de maladie présente dans la population, exprimée en pourcentage. |
 | Efficacité | `efficacy` | Cette fonction calcule l'efficacité, c'est à dire le niveau de réduction des organismes nuisibles ciblés ou des dommages qu'ils causent à la plante, après application d'un traitement, par rapport à un témoin non traité. L'efficacité est exprimée en pourcentage. |
@@ -259,23 +259,16 @@ head(eff_placette_tnt)
 Le package `{startbox}` propose des fonctions pour appliquer automatiquement des tests statistiques (ANOVA, Kruskal-Wallis) sur les variables observées.
 
 La fonction `test_stats()` permet de comparer les modalités de traitement en fonction de la variable d'intérêt.
+Elle retourne le test utilisé, la p_valeur du test et les rgoupes des modalites dans le dataframe. 
 
 ```{r}
-res_stats <- test_stats(
-  data = F_I_placette,
-  var_col = "value",
-  group_col = "plot_id",
-  block_col = NULL,
-  group_method = "SNK"
-)
-
-head(res_stats)
-
+test_stats(data = df_complet)
 ```
+
+
 ## Réaliser les graphiques
 
-Les données résumées ou les résultats statistiques peuvent être visualisés sous forme de barplots ou de heatmaps pour une meilleure lecture des différences entre modalités.
-Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction prepare_final_data car il faut joindre toutes les données du fichiers (metadata et feuille "data_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalite par exemple.
+Les données résumées ou les résultats statistiques peuvent être visualisés sous forme de barplots ou de heatmaps pour une meilleure lecture des différences entre modalités. Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction prepare_final_data car il faut joindre toutes les données du fichiers (metadata et feuille "data\_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalite par exemple.
 
 ```{r}
 mydata <- user_data$new(trial_file = "D:/IFV/App Rshiny (Hervé)/data_standard_ex.xlsx")
@@ -285,12 +278,11 @@ data1 <- read.csv2(myfilepath)
 mydata$add_obs(name = basename(myfilepath), df = data1, overwrite = TRUE)
 df_complet <- prepare_final_data(mydata)
 ```
+
 ### Heatmap
 
-La fonction plot_xpheat() permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs.
-Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
+La fonction plot_xpheat() permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs. Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
 
 ```{r}
 plot_xpheat(df_complet, variable = "PM_LEAF_PC")
 ```
-
