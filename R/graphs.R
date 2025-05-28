@@ -9,7 +9,7 @@
 #' @param echelle (optional) Maximum value for the fill color scale. If NULL, an automatic scale is calculated.
 #' @param orientation (optional) rotation of heatmap c(vertical, horizontal) default vertical
 #' @param caption A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".
-#' 
+#'
 #' @return A ggplot2 heatmap object.
 #'
 #' @details
@@ -26,29 +26,29 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
                         residus = FALSE,
                         fill = NULL,
                         caption = "IFV+") {
-  
+
   orientation <- match.arg(orientation)
-  
+
   # Check columns
   required_cols <- c("plot_id", "plot_x", "plot_y", variable)
   missing <- setdiff(required_cols, names(data))
   if (length(missing) > 0) {
     stop(paste("Missing required column(s):", paste(missing, collapse = ", ")))
   }
-  
+
   # Cleaning contact details
   data <- dplyr::mutate(data,
                         plot_x = as.numeric(plot_x),
                         plot_y = as.numeric(plot_y)) %>%
     dplyr::filter(!is.na(plot_x) & !is.na(plot_y))
-  
+
   data_agg <- dplyr::group_by(data, plot_id, plot_x, plot_y) %>%
     dplyr::summarise(Valeurs = mean(.data[[variable]], na.rm = TRUE), .groups = "drop")
-  
+
   if (nrow(data_agg) == 0) {
     stop("No aggregated data found.")
   }
-  
+
   # Waste management
   if (residus) {
     moyenne_globale <- mean(data_agg$Valeurs, na.rm = TRUE)
@@ -57,13 +57,13 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
   } else {
     if (is.null(titre)) titre <- paste("Heatmap -", variable)
   }
-  
+
   # Automatic scale
   if (is.null(echelle)) {
     max_abs <- max(abs(data_agg$Valeurs), na.rm = TRUE)
     echelle <- ceiling(max_abs * 1.1)
   }
-  
+
   # Axes
   if (orientation == "vertical") {
     aes_x <- rlang::sym("plot_x")
@@ -80,7 +80,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
       ggplot2::scale_y_continuous(breaks = seq(min(data_agg$plot_x, na.rm = TRUE), max(data_agg$plot_x, na.rm = TRUE), by = 1))
     )
   }
-  
+
   # Heatmap
   p <- ggplot2::ggplot(data_agg, ggplot2::aes(x = !!aes_x, y = !!aes_y, fill = Valeurs)) +
     ggplot2::geom_tile(color = "white", size = 0.5) +
@@ -116,7 +116,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
       panel.grid.major = ggplot2::element_blank(),
       panel.background = ggplot2::element_rect(fill = "white", color = NA)
     )
-  
+
   return(p)
 }
 
@@ -125,11 +125,14 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
 #' Barplot summary for an experiment
 #'
 #' @description
-#This function automatically generates a bar graph from observation or experimental data.
+#' This function automatically generates a bar graph from observation or experimental data.
 #'
 #' @param data2plot a dataframe, the first col is used for x axis, col value for y axis and col type for fill.
+#' @param xcol col to be used as factor for x avis
+#' @param ycol col to be used for y axis
+#' @param fillcol col to be used for fill
 #' @param scale Upper limit of the y axis. If NULL, automatic adjustment.
-#' @param bar_colour Bar fill colour.
+#' @param bar_color Bar fill colour.
 #' @param bar_width bar width
 #' @param border_tnt if true, the border color is set as red for TNT
 #' @param ... other parameters for labs (title, x, y,fill)
@@ -139,93 +142,92 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
 #' @import ggplot2
 #' @import dplyr
 #'
-#' @examples
-#' # Exemple d'utilisation
-#' plot_xpbar(my_data)
 #' @export
 
-library(ggplot2)
-library(dplyr)
 plot_xpbar2 <- function(data2plot,
-                        xcol = "trt_code",
-                        echelle = NULL,
-                        couleur_bars = NULL,
+                        xcol = "xp_trt_code",
+                        ycol = "value",
+                        fillcol = NULL,
+                        scale = NULL,
+                        bar_color = NULL,
                         bar_width = 0.7,
                         border_tnt = TRUE,
                         show_errorbar = TRUE,
                         ...) {
-  
+
 # Check that the xcol column exists
   if (!xcol %in% names(data2plot)) {
     stop(paste("Column", xcol, "not found in data"))
   }
-  
+
+  if (!ycol %in% names(data2plot)) {
+    stop(paste("Column", ycol, "not found in data"))
+  }
+
   xcol_sym <- rlang::sym(xcol)
-  
+  ycol_sym <- rlang::sym(ycol)
+
+  if (!is.null(fillcol))
+  {
+    fillcol_sym <- rlang::sym(fillcol)
+  } else {fillcol_sym <- NULL}
+
   # Choix intelligent des couleurs si non fourni
-  if (is.null(couleur_bars)) {
+  if (is.null(bar_color)) {
     if ("variable" %in% names(data2plot) &&
-        any(grepl("LEAF", data2plot$variable, ignore.case = TRUE))) {
-      couleur_bars <- c("#00AB50", "#66CDAA")  # vert
+        any(grepl("LEAF", data2plot$calculation, ignore.case = TRUE))) {
+      bar_color <- c("#00AB50", "#66CDAA")  # vert
     } else {
-      couleur_bars <- c("#9966CC", "#CC99FF")  # violet
+      bar_color <- c("#9966CC", "#CC99FF")  # violet
     }
   }
-  
-  # Couleur des bordures : rouge si TNT, sinon gris
-  data2plot <- data2plot %>%
-    dplyr::mutate(
-      border_color = if (border_tnt) {
-        ifelse(!!xcol_sym == "TNT", "red", "grey30")
-      } else {
-        "grey30"
-      }
-    )
-  
+
   # Calculation of scale y
   if (is.null(scale)) {
-    max_val <- max(data2plot$value, na.rm = TRUE)
+    max_val <- max(data2plot[,ycol], na.rm = TRUE)
     scale <- ceiling(max_val * 1.1)
   }
-  
+
   # Create the graph
-  p <- ggplot(data2plot, aes(x = !!xcol_sym, y = value, fill = type)) +
-    geom_bar(
-    aes(color = border_color),
-   stat = "identity",
-   position = position_dodge(width = bar_width),
+  p <- ggplot2::ggplot(data2plot, ggplot2::aes(x = !!xcol_sym, y = !!ycol_sym, fill = !!fillcol_sym)) +
+    ggplot2::geom_bar(
+      ggplot2::aes(color = grepl("TNT", !!xcol_sym)), # logical test in aes
+      stat = "summary", fun = "mean",
+   position = ggplot2::position_dodge(width = bar_width),
    width = bar_width,
    linewidth = 0.5
    )
-    
+
+  if (border_tnt) {
+    p <- p + ggplot2::scale_color_manual(values = c("FALSE" = "grey30", "TRUE" = "red"))
+  } else {
+    p <- p + ggplot2::scale_color_manual(values = c("FALSE" = "grey30", "TRUE" = "grey30"))
+  }
+
     # Conditional addition of error bars
    if (show_errorbar) {
-   p <- p + geom_errorbar(
-   data = filter(data2plot, !is.na(lower.CL) & !is.na(upper.CL)),
-   aes(ymin = lower.CL, ymax = upper.CL),
-   position = position_dodge(width = bar_width),
-   width = 0.2
-   )
+   p <- p + ggplot2::stat_summary(fun.data = ggplot2::mean_se, geom = "errorbar", width = 0.2)
    }
-    
+
     # Add text values
    p <- p +
-   geom_text(
-   aes(label = round(value, 1)),
-   vjust = -0.5, size = 4, color = "black",
-   position = position_dodge(width = bar_width)
-   ) +
-   labs(...) +
-   ylim(0, scale) +
-   scale_fill_manual(values = couleur_bars) +
-   scale_color_identity() +
-   theme_minimal() +
-   theme(
-   plot.title = element_text(size = 20, hjust = 0.5),
-   axis.text.x = element_text(angle = 45, hjust = 1),
-   legend.position = if (length(unique(data2plot$type)) > 1) "right" else "none"
+     ggplot2::stat_summary(fun = mean, geom = "text",
+                           ggplot2::aes(label = round(..y.., 1)),
+                  vjust = -0.5, size = 5)
+
+    # finalization
+   p <- p +
+     ggplot2::labs(...) +
+     ggplot2::ylim(0, scale) +
+     #ggplot2::scale_fill_manual(values = bar_color) + ## TO CHECK ... OVERWRITE FILL COLOR IF fillcol provided
+     #ggplot2::scale_color_identity() + ## TO CHECK UTILITY... OVERWRITE COLOR BAR RED TNT
+     ggplot2::theme_minimal() +
+     ggplot2::theme(
+   plot.title = ggplot2::element_text(size = 20, hjust = 0.5),
+   axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
+   legend.position = if (length(unique(data2plot$calculation)) > 1) "right" else "none"
    )
-  
+
   return(p)
 }
 
@@ -237,21 +239,22 @@ plot_xpbar2 <- function(data2plot,
 
 #(boxplot) from raw experimental data (plot, observation, disease).
 #'
-#' @param data Raw data containing at least plot_id and a "_PC" variable.
-#' @param titre Main title of the graph (optional).
+#' @param data Raw data containing at least plot_id, xp_trt_code and a "_PC" variable.
 #' @param echelle Upper limit of the y-axis (optional, otherwise automatic).
-#' @param caption A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".
+#' @param ... other parameters for labs (title, x, y,fill)
 #'
 #' @return A `ggplot2` object.
 #'
 #' @export
 
-plot_xpbox <- function(data, titre = NULL, echelle = NULL, caption = "IFV+", show_dots = FALSE) {
-  library(ggplot2)
-  library(dplyr)
+plot_xpbox <- function(data, echelle = NULL, show_dots = FALSE, ...) {
 
-  if (!"plot_id" %in% names(data)) {
+    if (!"plot_id" %in% names(data)) {
     stop("The column 'plot_id' is missing from your data.")
+    }
+
+  if (!"xp_trt_code" %in% names(data)) {
+    stop("The column 'xp_trt_code' is missing from your data.")
   }
 
   data$plot_id <- trimws(data$plot_id)
@@ -270,48 +273,34 @@ plot_xpbox <- function(data, titre = NULL, echelle = NULL, caption = "IFV+", sho
   variable <- candidate_vars[1]
   data$Valeurs <- data[[variable]]
 
-  data$plot_id <- toupper(trimws(data$plot_id))
-  blocks <- c("A", "B", "C", "D")
-  data$xp_trt_code <- remove_block_code(data$plot_id, blocks = blocks)
-
   if (is.null(echelle)) {
     max_val <- max(data$Valeurs, na.rm = TRUE)
     echelle <- ceiling(max_val * 1.1)
   }
 
-  if (is.null(titre)) {
-    titre <- paste("Boxplot -", variable)
-  }
-
-  p <- ggplot(data, aes(x = xp_trt_code, y = Valeurs)) +
-    geom_boxplot(
-      aes(fill = xp_trt_code),
+  p <- ggplot2::ggplot(data, ggplot2::aes(x = xp_trt_code, y = Valeurs)) +
+    ggplot2::geom_boxplot(
+      ggplot2::aes(fill = xp_trt_code),
       alpha = 0.6, outlier.color = "red", outlier.shape = NA
     )
 
   # ✅ Ajout des points individuels si demandé
   if (show_dots) {
-    p <- p + geom_jitter(
+    p <- p + ggplot2::geom_jitter(
       color = "#FF6600",
       width = 0.2, size = 2, alpha = 0.7, show.legend = FALSE
     )
   }
 
   # Moyenne
-  p <- p + stat_summary(
+  p <- p + ggplot2::stat_summary(
     fun = mean, geom = "point", shape = 4, size = 3, color = "black"
   ) +
-    labs(
-      title = titre,
-      subtitle = paste("Date :", paste(unique(data$observation_date), collapse = ", ")),
-      x = "Traitement",
-      y = "Intensité (%)",
-      caption = caption
-    ) +
-    scale_y_continuous(breaks = seq(0, 100, by = 10), limits = c(0, echelle)) +
-    scale_fill_manual(values = rep("#00AB50", length(unique(data$xp_trt_code)))) +
-    theme_minimal(base_size = 14) +
-    theme(legend.position = "none")
+    ggplot2::labs(...) +
+    ggplot2::scale_y_continuous(breaks = seq(0, 100, by = 10), limits = c(0, echelle)) +
+    ggplot2::scale_fill_manual(values = rep("#00AB50", length(unique(data$xp_trt_code)))) +
+    ggplot2::theme_minimal(base_size = 14) +
+    ggplot2::theme(legend.position = "none")
 
   return(p)
 }

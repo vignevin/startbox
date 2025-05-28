@@ -4,22 +4,14 @@
 \alias{plot_xpbox}
 \title{Boxplot summary for an experiment}
 \usage{
-plot_xpbox(
-  data,
-  titre = NULL,
-  echelle = NULL,
-  caption = "IFV+",
-  show_dots = FALSE
-)
+plot_xpbox(data, echelle = NULL, show_dots = FALSE, ...)
 }
 \arguments{
-\item{data}{Raw data containing at least plot_id and a "_PC" variable.}
-
-\item{titre}{Main title of the graph (optional).}
+\item{data}{Raw data containing at least plot_id, xp_trt_code and a "_PC" variable.}
 
 \item{echelle}{Upper limit of the y-axis (optional, otherwise automatic).}
 
-\item{caption}{A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".}
+\item{...}{other parameters for labs (title, x, y,fill)}
 }
 \value{
 A \code{ggplot2} object.

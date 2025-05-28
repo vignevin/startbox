@@ -182,7 +182,6 @@ head(data_F1)
 Cette fonction est à utiliser avec précaution ! Dans tous les cas, il est préférable de **compléter les feuilles placette et modalité** dans le fichier standard. Cela permet en outre d'enrichir les données avec le nom des traitements et la position des placettes.
 :::
 
-
 ## Fonctions de calcul
 
 ### Description des fonctions
@@ -330,7 +329,9 @@ test_stats(data = F_plot, value_col = "value")
 
 # Réaliser les graphiques
 
-Les données résumées ou les résultats statistiques peuvent être visualisés sous forme de barplots ou de heatmaps pour une meilleure lecture des différences entre modalités. Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction prepare_final_data car il faut joindre toutes les données du fichiers (metadata et feuille "data\_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalite par exemple.
+Les données résumées ou les résultats statistiques peuvent être visualisés sous forme de barplots ou de heatmaps pour une meilleure lecture des différences entre modalités.
+
+Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction prepare_final_data car il faut joindre toutes les données du fichiers (metadata et feuille "data\_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalités par exemple.
 
 ```{r}
 
@@ -341,10 +342,16 @@ head(df_complet)
 
 ## Barplot
 
+La fonction plot_xpbar2 permet de réaliser un graphique classique, dit "en batons".
+
+```{r}
+plot_xpbar2(df_complet,xcol="xp_trt_name",ycol="value",show_errorbar = F, 
+            y=unique(df_complet$calculation),x="Modalité")
+```
 
 ## Heatmap
 
-La fonction plot_xpheat() permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs. Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
+La fonction `plot_xpheat` permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs. Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
 
 ```{r}
 plot_xpheat(df_complet, variable = "value",
