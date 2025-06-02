@@ -143,7 +143,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
 #' @import dplyr
 #'
 #' @export
-plot_xpbar2 <- function(data2plot,
+plot_xpbar <- function(data2plot,
                         xcol = "xp_trt_code",
                         ycol = "value",
                         fillcol = NULL,
