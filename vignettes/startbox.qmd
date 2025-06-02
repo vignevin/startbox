@@ -112,7 +112,7 @@ Les données d'observation peuvent aussi provenir de l'application Topvigne.
 ```{r}
 #| label: load_obs
 
-file_path <- system.file("extdata","maladie_teisso_2024_11h12min F1 17.06.csv",package="startbox")
+file_path <- system.file("extdata","maladie_teisso_2024_11h12min_F1_17.06.csv",package="startbox")
 
 # verification si le fichier est issu de topvigne
 check_topvigne_csv(filepath = file_path)
@@ -189,7 +189,7 @@ Cette fonction est à utiliser avec précaution ! Dans tous les cas, il est pré
 Le tableau ci-dessous résume les fonctions intégrées au package :
 
 | Calcul | Fonction {startbox} | Description |
-|-------------------------|------------------------|------------------------|
+|-------------------------|-----------------------|------------------------|
 | Fréquence d'attaque | `incidence` | Cette fonction calcule la fréquence de la maladie dans la population observée, c'est à dire le nombre d'unités échantillonnées (feuilles, régimes, plantes…) atteintes exprimé en pourcentage du nombre total d'unités évaluées. |
 | Intensité d'attaque | `intensity` | Cette fonction calcule l'intensité de la maladie, comme la valeur moyenne des mesures de séverité. L'intensité de la maladie correspond à la quantité de maladie présente dans la population, exprimée en pourcentage. |
 | Efficacité | `efficacy` | Cette fonction calcule l'efficacité, c'est à dire le niveau de réduction des organismes nuisibles ciblés ou des dommages qu'ils causent à la plante, après application d'un traitement, par rapport à un témoin non traité. L'efficacité est exprimée en pourcentage. |
@@ -320,7 +320,8 @@ La fonction `test_stats()` permet de comparer les modalités de traitement en fo
 F_plot <- resume_data(data_F1,
                             var_col = "PM_LEAF_PC", 
                             group_cols = c("plot_id","xp_trt_code","plot_block"),
-                            funs = list(frequence = incidence))
+                            funs = list(frequence = incidence,
+                                        intensité = intensity))
 
 
 
@@ -337,15 +338,15 @@ Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction pre
 
 df_complet <- merge(F_plot, mydata2$metadata$moda_desc, all.x=T)
 df_complet <- merge(df_complet, mydata2$metadata$plot_desc, all.x=T)
-head(df_complet)
+print(df_complet)
 ```
 
 ## Barplot
 
-La fonction plot_xpbar2 permet de réaliser un graphique classique, dit "en batons".
+La fonction plot_xpbar permet de réaliser un graphique classique, dit "en batons".
 
 ```{r}
-plot_xpbar2(df_complet,xcol="xp_trt_name",ycol="value",show_errorbar = F, 
+plot_xpbar(df_complet,xcol="xp_trt_code",ycol="value",fillcol="calculation",show_errorbar = T, 
             y=unique(df_complet$calculation),x="Modalité")
 ```
 
@@ -354,6 +355,15 @@ plot_xpbar2(df_complet,xcol="xp_trt_name",ycol="value",show_errorbar = F,
 La fonction `plot_xpheat` permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs. Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
 
 ```{r}
-plot_xpheat(df_complet, variable = "value",
-            orientation="horizontal")
+plot_xpheat(df_complet, variable = "value", caption = "IFV")
+```
+
+## Boxplot
+
+La fonction plot_xpbox() permet de visualiser la répartition des valeurs observées pour chaque modalité sous forme de boîtes à moustaches. Ce type de graphique est particulièrement utile pour : - évaluer la dispersion des observations, - identifier les valeurs extrêmes ou atypiques, - comparer visuellement les distributions entre modalités.
+
+```{r}
+library(dplyr)
+
+plot_xpbox(df_complet, calculation_type = "intensité", show_dots = TRUE)
 ```
