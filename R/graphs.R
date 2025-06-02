@@ -25,7 +25,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
                         orientation = c("vertical", "horizontal"),
                         residus = FALSE,
                         fill = NULL,
-                        caption = "IFV+") {
+                        caption = NULL) {
 
   orientation <- match.arg(orientation)
 
@@ -143,7 +143,6 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
 #' @import dplyr
 #'
 #' @export
-
 plot_xpbar2 <- function(data2plot,
                         xcol = "xp_trt_code",
                         ycol = "value",
@@ -236,7 +235,6 @@ plot_xpbar2 <- function(data2plot,
 #'
 #' @description
 #' This function automatically generates a box plot
-
 #(boxplot) from raw experimental data (plot, observation, disease).
 #'
 #' @param data Raw data containing at least plot_id, xp_trt_code and a "_PC" variable.
@@ -247,52 +245,78 @@ plot_xpbar2 <- function(data2plot,
 #'
 #' @export
 
-plot_xpbox <- function(data, echelle = NULL, show_dots = FALSE, ...) {
-
-    if (!"plot_id" %in% names(data)) {
+plot_xpbox <- function(data, 
+                       echelle = NULL, 
+                       show_dots = FALSE, 
+                       calculation_type = "frequence", 
+                       ...) {
+  
+  if (!"plot_id" %in% names(data)) {
     stop("The column 'plot_id' is missing from your data.")
-    }
-
+  }
+  
   if (!"xp_trt_code" %in% names(data)) {
     stop("The column 'xp_trt_code' is missing from your data.")
   }
-
+  
   data$plot_id <- trimws(data$plot_id)
-
-  known_vars <- c("PM_LEAF_PC", "PM_BER_PC", "UN_LEAF_PC", "UN_BER_PC")
-  candidate_vars <- intersect(known_vars, names(data))
-
-  if (length(candidate_vars) == 0) {
-    stop("No valid _PC variable found in the data.")
+  
+  #Adaptation automatique selon value + calculation
+  if (all(c("value", "calculation") %in% names(data))) {
+    type_rows <- grepl(paste0("^", calculation_type, " "), data$calculation)
+    
+    if (sum(type_rows) == 0) {
+      stop(paste0("No '", calculation_type, "' data found in the calculation column."))
+    }
+    
+    data <- data[type_rows, ]
+    variable <- unique(sub(paste0("^", calculation_type, " "), "", data$calculation))
+    
+    if (length(variable) > 1) {
+      message("Several '", calculation_type, "' variables found: ", paste(variable, collapse = ", "))
+      message("The first variable detected is used: ", variable[1])
+    }
+    
+    variable <- variable[1]
+    data$Valeurs <- data$value
+  } else {
+    #Fallback classique
+    known_vars <- c("PM_LEAF_PC", "PM_BER_PC", "UN_LEAF_PC", "UN_BER_PC")
+    candidate_vars <- intersect(known_vars, names(data))
+    
+    if (length(candidate_vars) == 0) {
+      stop("No valid _PC variable found in the data.")
+    }
+    if (length(candidate_vars) > 1) {
+      message("Several _PC variables found: ", paste(candidate_vars, collapse = ", "))
+      message("The first variable detected is used: ", candidate_vars[1])
+    }
+    
+    variable <- candidate_vars[1]
+    data$Valeurs <- data[[variable]]
   }
-  if (length(candidate_vars) > 1) {
-    message("Several _PC variables found: ", paste(candidate_vars, collapse = ", "))
-    message("The first variable detected is used: ", candidate_vars[1])
-  }
-
-  variable <- candidate_vars[1]
-  data$Valeurs <- data[[variable]]
-
+  
+  # 📏 Échelle
   if (is.null(echelle)) {
     max_val <- max(data$Valeurs, na.rm = TRUE)
     echelle <- ceiling(max_val * 1.1)
   }
-
+  
+  # 📊 Boxplot
   p <- ggplot2::ggplot(data, ggplot2::aes(x = xp_trt_code, y = Valeurs)) +
     ggplot2::geom_boxplot(
       ggplot2::aes(fill = xp_trt_code),
       alpha = 0.6, outlier.color = "red", outlier.shape = NA
     )
-
-  # ✅ Ajout des points individuels si demandé
+  
+  # ✨ Jitter optionnel
   if (show_dots) {
     p <- p + ggplot2::geom_jitter(
-      color = "#FF6600",
-      width = 0.2, size = 2, alpha = 0.7, show.legend = FALSE
+      color = "#FF6600", width = 0.2, size = 2, alpha = 0.7, show.legend = FALSE
     )
   }
-
-  # Moyenne
+  
+  # ➕ Moyenne
   p <- p + ggplot2::stat_summary(
     fun = mean, geom = "point", shape = 4, size = 3, color = "black"
   ) +
@@ -301,7 +325,6 @@ plot_xpbox <- function(data, echelle = NULL, show_dots = FALSE, ...) {
     ggplot2::scale_fill_manual(values = rep("#00AB50", length(unique(data$xp_trt_code)))) +
     ggplot2::theme_minimal(base_size = 14) +
     ggplot2::theme(legend.position = "none")
-
+  
   return(p)
 }
-
