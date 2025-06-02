@@ -12,7 +12,7 @@ plot_xpheat(
   orientation = c("vertical", "horizontal"),
   residus = FALSE,
   fill = NULL,
-  caption = "IFV+"
+  caption = NULL
 )
 }
 \arguments{
