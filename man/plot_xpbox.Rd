@@ -4,7 +4,13 @@
 \alias{plot_xpbox}
 \title{Boxplot summary for an experiment}
 \usage{
-plot_xpbox(data, echelle = NULL, show_dots = FALSE, ...)
+plot_xpbox(
+  data,
+  echelle = NULL,
+  show_dots = FALSE,
+  calculation_type = "frequence",
+  ...
+)
 }
 \arguments{
 \item{data}{Raw data containing at least plot_id, xp_trt_code and a "_PC" variable.}
