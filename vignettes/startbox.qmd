@@ -8,6 +8,8 @@ knitr:
   opts_chunk:
     collapse: true
     comment: '#>'
+    fig.width: 10
+    fig.height: 12
 ---
 
 # Introduction
@@ -108,24 +110,17 @@ L'utilisateur pourra ultérieurement exporter le fichier Excel standardisé avec
 ### Cas des données Topvigne
 
 Les données d'observation peuvent aussi provenir de l'application Topvigne.
+Il est possible d'utiliser la fonction `standardise_topvigne_csv` qui permet de vérifier si le fichier provient bien de TopVigne, de le transformer et standardiser les données collectées avec Topvigne.
 
 ```{r}
 #| label: load_obs
 
 file_path <- system.file("extdata","maladie_teisso_2024_11h12min_F1_17.06.csv",package="startbox")
 
-# verification si le fichier est issu de topvigne
-check_topvigne_csv(filepath = file_path)
-```
-
-Il est possible d'utiliser la fonction `standardise_topvigne_csv` qui permet de transformer et standardiser les données collectées avec Topvigne.
-
-```{r}
-# importation 
+# verification si le fichier est issu de topvigne & importation 
 data_F1 <- standardise_topvigne_csv(file_path)
 head(data_F1)
 ```
-
 Les données sont ensuite ajoutées à l'objet `user_data`.
 
 ```{r}
@@ -365,5 +360,5 @@ La fonction plot_xpbox() permet de visualiser la répartition des valeurs observ
 ```{r}
 library(dplyr)
 
-plot_xpbox(df_complet, calculation_type = "intensité", show_dots = TRUE)
+plot_xpbox(df_complet, calculation_type = "frequence", show_dots = TRUE)
 ```
