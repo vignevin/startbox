@@ -6,17 +6,16 @@
 #' @param df The dataframe to harmonize.
 #' @param types_map (optional) predefined type mapping (otherwise it will load from a CSV).
 #' @param dictionary_path (optional) path to the CSV dictionary file if types_map is not provided.
-#' @param format_date (optional) a character vector of date formats to try (e.g., c("%d/%m/%Y", "%Y-%m-%d")).
 #'
 #' @return A dataframe with harmonized column types.
 #' @export
 harmonize_column_types <- function(df, types_map = NULL, dictionary_path = system.file("extdata", "star_dictionary.csv", package = "startbox")) {
 
   if (is.null(types_map)) {
-    types_df <- read.csv2(dictionary_path, stringsAsFactors = FALSE)
+    types_df <- utils::read.csv2(dictionary_path, stringsAsFactors = FALSE)
     types_df <- types_df[!(is.na(types_df$nom) | types_df$nom == "" |
                              is.na(types_df$Rclass) | types_df$Rclass == ""), ]
-    types_map <- setNames(as.list(types_df$Rclass), types_df$nom)
+    types_map <- stats::setNames(as.list(types_df$Rclass), types_df$nom)
   }
 
   for (col in names(types_map)) {
@@ -78,8 +77,8 @@ harmonize_all_obs_data <- function(obs_data) {
 #' Remove string in a character vector
 #'
 #' @description
-#' This function takes two character vectors of the same length and, for each position, removes the string in pattern[i] from vec[i], ignoring case.
-#' If either element at position i equals "TNT" (case-insensitive), it returns "TNT" for that position instead.
+#' This function takes two character vectors of the same length and, for each position, removes the string in \code{pattern[i]} from \code{vec[i]}, ignoring case.
+#' If either element at position \code{i} equals "TNT" (case-insensitive), it returns "TNT" for that position instead.
 #' @param vec a character vector
 #' @param pattern a character vector
 #' @param separator a character that separate parts of the string, for example "_"

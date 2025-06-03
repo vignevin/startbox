@@ -1,10 +1,21 @@
-#' @description
-#' Merges observation data with metadata sheets ('placette' and 'modalite') if available.
-#' The function first joins the plot and treatment metadata, then links this to the combined observation data
-#' based on the 'plot_id' column.
+#' @title Prepare Final Merged Dataset with Metadata
 #'
-#' @return A data.frame with observation data joined with plot and treatment metadata.
-#' If no observation data is present, returns only the joined metadata.
+#' @description
+#' Merges observation data with metadata sheets ("placette" and "modalite") if available.
+#' The function first joins the plot-level and treatment-level metadata, then links the result to the combined observation data
+#' using the `plot_id` column.
+#'
+#' @param self An instance of the `UserData` R6 class containing observation data and metadata.
+#'
+#' @return A `data.frame` with observation data enriched by plot and treatment metadata.
+#' If no observation data is available, returns only the merged plot + modality metadata.
+#' If required metadata is missing, returns `NULL` with a message.
+#'
+#' @details
+#' - Assumes that `self$metadata$plot_desc` contains `factor_level_code` and `plot_id`.
+#' - Assumes that `self$metadata$moda_desc` contains `xp_trt_code`.
+#' - If `self$combined_data` is not set, calls to `combine_data_obs()` are made automatically.
+#'
 #' @export
 prepare_final_data <- function(self) {
   
@@ -51,12 +62,21 @@ prepare_final_data <- function(self) {
 }
 
 
+#' @title Combine and Reorder Observation Data
+#'
 #' @description
-#' Combines all observation datasets into a single dataframe and reorders columns.
+#' Combines all observation datasets into a single dataframe and reorders columns
+#' to follow a standard structure.
 #'
-#' @param obs_data A list of harmonized observation datasets.
+#' @param obs_data A named list of harmonized observation dataframes. Each element should contain at least some of the standard columns like `plot_id`, `bbch_stage`, etc.
 #'
-#' @return A combined and reordered dataframe.
+#' @return A single combined dataframe with standard columns (`prov_name`, `prov_date`, `observation_date`, `bbch_stage`, `plot_id`) appearing first, followed by all other columns in their original order.
+#'
+#' @details
+#' - The function is typically used after harmonizing all observation datasets.
+#' - Columns not in the template list are retained and placed after the standard ones.
+#' - The final output is useful for exporting or merging with other trial data.
+#'
 #' @export
 combine_and_reorder_obs <- function(obs_data) {
   combined <- dplyr::bind_rows(obs_data)
@@ -70,13 +90,23 @@ combine_and_reorder_obs <- function(obs_data) {
 }
 
 
+#' @title Merge Combined Data with Existing Excel Sheet
+#'
 #' @description
-#' Merges new combined data with existing data in the Excel file.
+#' Merges newly combined observation data with any existing data stored in the "data" sheet of an Excel workbook.
+#' Ensures consistent data types and avoids duplication based on `prov_name`.
 #'
-#' @param wb The openxlsx2 workbook object.
-#' @param combined The newly combined data to insert.
+#' @param wb A `workbook` object from the `openxlsx2` package, representing the loaded Excel trial file.
+#' @param combined A `data.frame` containing newly combined and standardized observation data to be merged.
 #'
-#' @return A dataframe containing old data + new combined data.
+#' @return A `data.frame` containing both the original and new data, with duplicates replaced if applicable.
+#'
+#' @details
+#' - Converts key columns (`prov_name`, `plot_id`, etc.) to character to ensure compatibility.
+#' - Converts all `*_PC` columns to numeric format.
+#' - If the `prov_name` already exists in the original data, the corresponding rows are replaced by the new data.
+#' - Removes the existing "data" worksheet from the workbook to prepare for writing the updated version.
+#'
 #' @export
 merge_with_existing_data <- function(wb, combined) {
   if ("data" %in% openxlsx2::wb_get_sheet_names(wb)) {

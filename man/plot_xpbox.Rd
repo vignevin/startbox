@@ -17,6 +17,10 @@ plot_xpbox(
 
 \item{echelle}{Upper limit of the y-axis (optional, otherwise automatic).}
 
+\item{show_dots}{displaying points}
+
+\item{calculation_type}{choice of calculation function used default frequency}
+
 \item{...}{other parameters for labs (title, x, y,fill)}
 }
 \value{

@@ -16,8 +16,6 @@ harmonize_column_types(
 \item{types_map}{(optional) predefined type mapping (otherwise it will load from a CSV).}
 
 \item{dictionary_path}{(optional) path to the CSV dictionary file if types_map is not provided.}
-
-\item{format_date}{(optional) a character vector of date formats to try (e.g., c("\%d/\%m/\%Y", "\%Y-\%m-\%d")).}
 }
 \value{
 A dataframe with harmonized column types.

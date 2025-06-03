@@ -22,6 +22,7 @@ Imports:
     R6 (>= 2.6.1),
     readr,
     readxl,
+    rlang,
     stringr,
     tidyr
 Suggests: 

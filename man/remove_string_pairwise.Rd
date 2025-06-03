@@ -17,8 +17,8 @@ remove_string_pairwise(vec, pattern, separator = NULL)
 a character vector
 }
 \description{
-This function takes two character vectors of the same length and, for each position, removes the string in pattern\link{i} from vec\link{i}, ignoring case.
-If either element at position i equals "TNT" (case-insensitive), it returns "TNT" for that position instead.
+This function takes two character vectors of the same length and, for each position, removes the string in \code{pattern[i]} from \code{vec[i]}, ignoring case.
+If either element at position \code{i} equals "TNT" (case-insensitive), it returns "TNT" for that position instead.
 }
 \examples{
 plot_id <- c("1a","2A","1B","tnt1","4c")

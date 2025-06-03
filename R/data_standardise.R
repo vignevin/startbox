@@ -110,7 +110,7 @@ standardise_data <- function(input_data, lookup_table = c("Mildiou_Feuille" = "P
 
     # Lire les données selon l'extension
     if (ext == "csv") {
-      df <- read.csv2(file = input_data, fileEncoding = "latin1")
+      df <- utils::read.csv2(file = input_data, fileEncoding = "latin1")
     } else if (ext == "xlsx") {
       df <- readxl::read_excel(input_data, sheet = "data")
     }

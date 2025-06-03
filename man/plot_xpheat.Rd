@@ -16,15 +16,21 @@ plot_xpheat(
 )
 }
 \arguments{
-\item{data}{A dataframe containing at least 'plot_x', 'plot_y', *_PC variable (e.g., PM_LEAF_PC) and a column plot_id}
+\item{data}{A dataframe containing at least 'plot_id', 'plot_x', 'plot_y', the variable of interest, and optionally 'calculation'.}
 
-\item{titre}{(optional) Title of the plot. If NULL, a default title based on the variable is used.}
+\item{variable}{Character. The name of the column representing the variable to display (e.g., "PM_LEAF_PC").}
 
-\item{echelle}{(optional) Maximum value for the fill color scale. If NULL, an automatic scale is calculated.}
+\item{titre}{(optional) Character. Title of the plot. If NULL, a default title based on the variable is used.}
 
-\item{orientation}{(optional) rotation of heatmap c(vertical, horizontal) default vertical}
+\item{echelle}{(optional) Numeric. Maximum value for the fill color scale. If NULL, an automatic scale is calculated.}
 
-\item{caption}{A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".}
+\item{orientation}{Character. Either "vertical" or "horizontal" to control plot orientation. Default is "vertical".}
+
+\item{residus}{Logical. If TRUE, centers the values by subtracting the global mean (residual visualization).}
+
+\item{fill}{Optional. A vector of two colors (e.g., c("yellow", "red")) to manually define the fill gradient. Ignored if \code{residus = TRUE}.}
+
+\item{caption}{Character. A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".}
 }
 \value{
 A ggplot2 heatmap object.

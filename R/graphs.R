@@ -4,11 +4,14 @@
 #' Generates a heatmap based on experimental observation data,
 #' using `plot_x` and `plot_y` coordinates and coloring according to a selected disease variable (_PC columns).
 #'
-#' @param data A dataframe containing at least 'plot_x', 'plot_y', *_PC variable (e.g., PM_LEAF_PC) and a column plot_id
-#' @param titre (optional) Title of the plot. If NULL, a default title based on the variable is used.
-#' @param echelle (optional) Maximum value for the fill color scale. If NULL, an automatic scale is calculated.
-#' @param orientation (optional) rotation of heatmap c(vertical, horizontal) default vertical
-#' @param caption A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".
+#' @param data A dataframe containing at least 'plot_id', 'plot_x', 'plot_y', the variable of interest, and optionally 'calculation'.
+#' @param variable Character. The name of the column representing the variable to display (e.g., "PM_LEAF_PC").
+#' @param titre (optional) Character. Title of the plot. If NULL, a default title based on the variable is used.
+#' @param echelle (optional) Numeric. Maximum value for the fill color scale. If NULL, an automatic scale is calculated.
+#' @param orientation Character. Either "vertical" or "horizontal" to control plot orientation. Default is "vertical".
+#' @param residus Logical. If TRUE, centers the values by subtracting the global mean (residual visualization).
+#' @param fill Optional. A vector of two colors (e.g., c("yellow", "red")) to manually define the fill gradient. Ignored if `residus = TRUE`.
+#' @param caption Character. A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".
 #'
 #' @return A ggplot2 heatmap object.
 #'
@@ -26,7 +29,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
                         residus = FALSE,
                         fill = NULL,
                         caption = NULL) {
-
+  
   orientation <- match.arg(orientation)
 
   # Check columns
@@ -106,7 +109,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
       }
     } +
     axis_breaks +
-    ggplot2::coord_fixed() +
+    ggplot2::coord_fixed(ratio = 0.3) + # ou 2 si tu veux des carrés plus larges 
     ggplot2::theme_minimal(base_size = 14) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(hjust = 0.5),
@@ -135,6 +138,7 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
 #' @param bar_color Bar fill colour.
 #' @param bar_width bar width
 #' @param border_tnt if true, the border color is set as red for TNT
+#' @param show_errorbar display of error bars
 #' @param ... other parameters for labs (title, x, y,fill)
 #'
 #' @return a barplot
@@ -153,7 +157,7 @@ plot_xpbar <- function(data2plot,
                         border_tnt = TRUE,
                         show_errorbar = TRUE,
                         ...) {
-
+  
 # Check that the xcol column exists
   if (!xcol %in% names(data2plot)) {
     stop(paste("Column", xcol, "not found in data"))
@@ -239,6 +243,8 @@ plot_xpbar <- function(data2plot,
 #'
 #' @param data Raw data containing at least plot_id, xp_trt_code and a "_PC" variable.
 #' @param echelle Upper limit of the y-axis (optional, otherwise automatic).
+#' @param show_dots displaying points
+#' @param calculation_type choice of calculation function used default frequency
 #' @param ... other parameters for labs (title, x, y,fill)
 #'
 #' @return A `ggplot2` object.

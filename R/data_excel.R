@@ -1,17 +1,20 @@
+#' @title Save Combined Data to a Versioned Excel File
+#'
 #' @description
-#' Save combined data into the 'data' sheet of an Excel file.
+#' Saves the provided combined observation data into the "data" sheet of a versioned Excel file.
+#' The function creates a copy of the original Excel file with an incremented suffix (e.g., `_v1`, `_v2`, etc.)
+#' to avoid overwriting existing files.
 #'
-#' @param combined_data The combined observation data (data.frame).
-#' @param excel_data_trial_path Path to the Excel file (.xlsx).
+#' @param combined_data A `data.frame` containing the combined observation data to write into the Excel file.
+#' @param excel_data_trial_path Character. Full path to the original Excel file to use as a base for creating the versioned copy.
 #'
-#' @return None. Writes and saves into Excel.
-#' @description
-#' Save combined data into a versioned Excel file to avoid overwriting.
+#' @return A character string containing the full path of the newly saved versioned Excel file.
 #'
-#' @param combined_data The combined observation data (data.frame).
-#' @param excel_data_trial_path Path to the original Excel file (used as naming base).
+#' @details
+#' - The original Excel file is not modified.
+#' - If a "data" sheet exists in the versioned file, it is replaced with the new data.
+#' - The function returns the path of the versioned file, which includes `_v1`, `_v2`, etc., to ensure uniqueness.
 #'
-#' @return The full path of the newly saved versioned Excel file.
 #' @export
 save_data_to_excel<- function(combined_data, excel_data_trial_path) {
   # Extraire le chemin, nom et extension
@@ -51,14 +54,23 @@ save_data_to_excel<- function(combined_data, excel_data_trial_path) {
   return(new_file)
 }
 
+#' @title Prepare Excel Trial File from Template
+#'
 #' @description
-#' Prepares the Excel file by copying the template if necessary.
+#' Prepares the Excel trial file by copying the blank template if `self$excel_data_trial` is missing or invalid.
+#' This ensures a valid Excel structure is available for inserting observation and metadata sheets.
 #'
-#' @param self The UserData object.
-#' @param directory Path to store the file
-#' @param filename name of the file ending with .xlsx
+#' @param self An instance of the `UserData` R6 class.
+#' @param directory Character. Directory where the new file should be saved. Defaults to the current working directory if NULL.
+#' @param filename Character. Name of the new Excel file (must end with `.xlsx`). If NULL, a default name based on the template is used.
 #'
-#' @return None. Updates self$excel_data_trial if needed.
+#' @return None. The method updates `self$excel_data_trial` with the path to the copied file.
+#'
+#' @details
+#' - If `self$excel_data_trial` is already set and the file exists, nothing is done.
+#' - Otherwise, the method copies `self$excel_model` to the specified location and updates the reference in the object.
+#' - A message is printed to indicate success or failure.
+#'
 #' @export
 prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
   # Si le fichier trial n’existe pas ou est invalide
@@ -89,16 +101,22 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
   }
 }
 
+#' @title Load Metadata Sheets from Excel Trial File
+#'
 #' @description
-#' Reads the 'placette' and 'modalite' sheets from the Excel trial file and stores them.
+#' Reads the sheets named `"placette"` and `"modalite"` from the Excel trial file stored in `self$excel_data_trial`,
+#' and stores the non-empty content into the metadata list of the `UserData` object.
 #'
-#' @param self The UserData object.
+#' @param self An instance of the `UserData` R6 class containing the path to the Excel trial file.
 #'
-#' @return None. Updates self$plot_desc and self$moda_desc.
-#' @description
-#' Reads metadata sheets from the Excel trial file and stores them in metadata.
+#' @return None. Updates `self$metadata` by assigning:
+#' - `"plot_desc"` from the "placette" sheet if present and non-empty.
+#' - `"moda_desc"` from the "modalite" sheet if present and non-empty.
 #'
-#' @param self An instance of the UserData R6 class.
+#' @details
+#' - Empty rows (fully NA or empty strings) are removed from each sheet before storage.
+#' - Messages are printed to confirm loading or alert if sheets are missing or empty.
+#'
 #' @export
 load_metadata_sheets <- function(self) {
   wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
