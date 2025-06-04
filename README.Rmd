@@ -27,9 +27,19 @@ This R package was developped as part of the STAR project 2024-2027 (France), wi
 
 You can install the development version of startbox from [GitHub](https://github.com/) with:
 
-``` r
-# install.packages("pak")
-pak::pak("vignevin/startbox")
+```{r}
+#install.packages("devtools")  # if not already installed
+devtools::install_github("vignevin/startbox")
+```
+
+If you also want to install the vignette (which serves as a tutorial for the package), run this after installation:
+```{r}
+devtools::install(build_vignettes = TRUE)
+```
+
+Once installed, you can access the vignette with:
+```{r}
+vignette("startbox")
 ```
 
 ## Example
