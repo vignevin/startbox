@@ -124,7 +124,6 @@ plot_xpheat <- function(data, variable, titre = NULL, echelle = NULL,
 }
 
 
-
 #' Barplot summary for an experiment
 #'
 #' @description
@@ -177,18 +176,23 @@ plot_xpbar <- function(data2plot,
 
   # Choix intelligent des couleurs si non fourni
   if (is.null(bar_color)) {
-    if ("variable" %in% names(data2plot) &&
-        any(grepl("LEAF", data2plot$calculation, ignore.case = TRUE))) {
+    if (any(grepl("LEAF", data2plot$calculation, ignore.case = TRUE))) {
       bar_color <- c("#00AB50", "#66CDAA")  # vert
     } else {
       bar_color <- c("#9966CC", "#CC99FF")  # violet
     }
   }
+  
 
   # Calculation of scale y
   if (is.null(scale)) {
     max_val <- max(data2plot[,ycol], na.rm = TRUE)
     scale <- ceiling(max_val * 1.1)
+  }
+  
+  if ("xp_trt_code" %in% names(data2plot)) {
+    levels_order <- c(as.character(sort(as.numeric(na.omit(unique(data2plot$xp_trt_code[!grepl("TNT", data2plot$xp_trt_code)]))))), "TNT")
+    data2plot$xp_trt_code <- factor(data2plot$xp_trt_code, levels = levels_order)
   }
 
   # Create the graph
@@ -208,10 +212,15 @@ plot_xpbar <- function(data2plot,
   }
 
     # Conditional addition of error bars
-   if (show_errorbar) {
-   p <- p + ggplot2::stat_summary(fun.data = ggplot2::mean_se, geom = "errorbar", width = 0.2)
-   }
-
+  if (show_errorbar) {
+    p <- p + ggplot2::stat_summary(
+      fun.data = ggplot2::mean_se,
+      geom = "errorbar",
+      width = 0.2,
+      position = ggplot2::position_dodge(width = bar_width)
+    )
+  }
+  
     # Add text values
    p <- p +
      ggplot2::stat_summary(fun = mean, geom = "text",
@@ -222,7 +231,8 @@ plot_xpbar <- function(data2plot,
    p <- p +
      ggplot2::labs(...) +
      ggplot2::ylim(0, scale) +
-     #ggplot2::scale_fill_manual(values = bar_color) + ## TO CHECK ... OVERWRITE FILL COLOR IF fillcol provided
+     ggplot2::scale_fill_manual(values = bar_color) + ## TO CHECK ... OVERWRITE FILL COLOR IF fillcol provided
+     ggplot2::guides(color = "none")
      #ggplot2::scale_color_identity() + ## TO CHECK UTILITY... OVERWRITE COLOR BAR RED TNT
      ggplot2::theme_minimal() +
      ggplot2::theme(
@@ -306,6 +316,11 @@ plot_xpbox <- function(data,
   if (is.null(echelle)) {
     max_val <- max(data$Valeurs, na.rm = TRUE)
     echelle <- ceiling(max_val * 1.1)
+  }
+  
+  if ("xp_trt_code" %in% names(data)) {
+    levels_order <- c(as.character(sort(as.numeric(na.omit(unique(data$xp_trt_code[!grepl("TNT", data$xp_trt_code)]))))), "TNT")
+    data$xp_trt_code <- factor(data$xp_trt_code, levels = levels_order)
   }
   
   # 📊 Boxplot
