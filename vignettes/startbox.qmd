@@ -1,5 +1,9 @@
 ---
 title: "startbox"
+format:
+  html:
+    code-copy: true
+    code-overflow: wrap
 vignette: >
   %\VignetteIndexEntry{startbox}
   %\VignetteEngine{quarto::html}
@@ -8,8 +12,6 @@ knitr:
   opts_chunk:
     collapse: true
     comment: '#>'
-    fig.width: 10
-    fig.height: 12
 ---
 
 # Introduction
@@ -110,7 +112,8 @@ L'utilisateur pourra ultérieurement exporter le fichier Excel standardisé avec
 ### Cas des données Topvigne
 
 Les données d'observation peuvent aussi provenir de l'application Topvigne.
-Il est possible d'utiliser la fonction `standardise_topvigne_csv` qui permet de vérifier si le fichier provient bien de TopVigne, de le transformer et standardiser les données collectées avec Topvigne.
+
+Il est possible d'utiliser la fonction `standardise_topvigne_csv` qui permet de transformer et standardiser les données collectées avec Topvigne.
 
 ```{r}
 #| label: load_obs
@@ -121,6 +124,7 @@ file_path <- system.file("extdata","maladie_teisso_2024_11h12min_F1_17.06.csv",p
 data_F1 <- standardise_topvigne_csv(file_path)
 head(data_F1)
 ```
+
 Les données sont ensuite ajoutées à l'objet `user_data`.
 
 ```{r}
@@ -184,7 +188,7 @@ Cette fonction est à utiliser avec précaution ! Dans tous les cas, il est pré
 Le tableau ci-dessous résume les fonctions intégrées au package :
 
 | Calcul | Fonction {startbox} | Description |
-|-------------------------|-----------------------|------------------------|
+|------------------------|------------------------|------------------------|
 | Fréquence d'attaque | `incidence` | Cette fonction calcule la fréquence de la maladie dans la population observée, c'est à dire le nombre d'unités échantillonnées (feuilles, régimes, plantes…) atteintes exprimé en pourcentage du nombre total d'unités évaluées. |
 | Intensité d'attaque | `intensity` | Cette fonction calcule l'intensité de la maladie, comme la valeur moyenne des mesures de séverité. L'intensité de la maladie correspond à la quantité de maladie présente dans la population, exprimée en pourcentage. |
 | Efficacité | `efficacy` | Cette fonction calcule l'efficacité, c'est à dire le niveau de réduction des organismes nuisibles ciblés ou des dommages qu'ils causent à la plante, après application d'un traitement, par rapport à un témoin non traité. L'efficacité est exprimée en pourcentage. |
@@ -315,10 +319,7 @@ La fonction `test_stats()` permet de comparer les modalités de traitement en fo
 F_plot <- resume_data(data_F1,
                             var_col = "PM_LEAF_PC", 
                             group_cols = c("plot_id","xp_trt_code","plot_block"),
-                            funs = list(frequence = incidence,
-                                        intensité = intensity))
-
-
+                            funs = list(frequence = incidence, intensité = intensity))
 
 test_stats(data = F_plot, value_col = "value")
 ```
@@ -327,13 +328,13 @@ test_stats(data = F_plot, value_col = "value")
 
 Les données résumées ou les résultats statistiques peuvent être visualisés sous forme de barplots ou de heatmaps pour une meilleure lecture des différences entre modalités.
 
-Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction prepare_final_data car il faut joindre toutes les données du fichiers (metadata et feuille "data\_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalités par exemple.
+Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction merge_data_metadata car il faut joindre toutes les données du fichiers (metadata et feuille "data\_"). Pour les autres graphiques c'est aussi intéressant pour obtenir des informations plus précises sur les modalités par exemple.
 
 ```{r}
 
 df_complet <- merge(F_plot, mydata2$metadata$moda_desc, all.x=T)
 df_complet <- merge(df_complet, mydata2$metadata$plot_desc, all.x=T)
-print(df_complet)
+print(head(df_complet))
 ```
 
 ## Barplot
@@ -341,8 +342,7 @@ print(df_complet)
 La fonction plot_xpbar permet de réaliser un graphique classique, dit "en batons".
 
 ```{r}
-plot_xpbar(df_complet,xcol="xp_trt_code",ycol="value",fillcol="calculation",show_errorbar = T, 
-            y=unique(df_complet$calculation),x="Modalité")
+plot_xpbar(df_complet,xcol="xp_trt_code",ycol="value",fillcol="calculation",show_errorbar = T)
 ```
 
 ## Heatmap
