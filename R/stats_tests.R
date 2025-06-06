@@ -32,62 +32,87 @@
 #'
 #' @return A list with test name, p-value and group letters.
 #' @export
-test_stats <- function(data, value_col = "PM_LEAF_PC", trt_col = "xp_trt_code",
+test_stats <- function(data, value_col = "value", trt_col = "xp_trt_code",
                        alpha = 0.05,
                        group_method = "SNK",
                        force_test = NULL,
                        verbose = TRUE) {
-
+  
   if (!(value_col %in% names(data)) || !(trt_col %in% names(data))) {
     stop("Required columns are missing.")
   }
-
-  df <- data[!is.na(data[[value_col]]) & !is.na(data[[trt_col]]), ]
-
-  if (nrow(df) == 0 || length(unique(df[[trt_col]])) <= 1) {
-    if (verbose) message("Not enough data or only one group.")
-    return(list(test = "Non applicable", p_value = NA, groupes = data.frame(groups = character(0))))
+  
+  if (!"calculation" %in% names(data)) {
+    stop("Column 'calculation' is required for multi-calculation support.")
   }
-
-  df[[trt_col]] <- as.factor(df[[trt_col]])
-  formula <- as.formula(paste(value_col, "~", trt_col))
-
-  if (is.null(force_test)) {
-    model <- stats::aov(formula, data = df)
-    p_norm <- check_normality(model)
-    p_var <- check_heteroscedasticity(model)
-    if (verbose) message("Shapiro p =", round(p_norm, 3), " | Bartlett p =", round(p_var, 3))
+  
+  calc_types <- unique(data$calculation)
+  results_list <- list()
+  
+  for (calc in calc_types) {
+    df <- data[data$calculation == calc &
+                 !is.na(data[[value_col]]) & !is.na(data[[trt_col]]), ]
+    
+    if (nrow(df) == 0 || length(unique(df[[trt_col]])) <= 1) {
+      if (verbose) message("Skipping ", calc, ": not enough data or only one group.")
+      next
+    }
+    
+    df[[trt_col]] <- as.factor(df[[trt_col]])
+    formula <- as.formula(paste(value_col, "~", trt_col))
+    
+    if (is.null(force_test)) {
+      model <- stats::aov(formula, data = df)
+      p_norm <- check_normality(model)
+      p_var <- check_heteroscedasticity(model)
+      if (verbose) message("[", calc, "] Shapiro p =", round(p_norm, 3), " | Bartlett p =", round(p_var, 3))
+    }
+    
+    if (!is.null(force_test) && force_test == "anova" ||
+        is.null(force_test) && p_norm > alpha && p_var > alpha) {
+      model <- stats::aov(formula, data = df)
+      pval <- summary(model)[[1]][["Pr(>F)"]][1]
+      groupes <- switch(
+        group_method,
+        SNK = agricolae::SNK.test(model, trt = trt_col, group = TRUE)$groups,
+        LSD = agricolae::LSD.test(model, trt = trt_col, group = TRUE)$groups,
+        stop("Invalid group_method for ANOVA.")
+      )
+    } else {
+      pval <- stats::kruskal.test(formula, data = df)$p.value
+      groupes <- agricolae::kruskal(df[[value_col]], df[[trt_col]], group = TRUE)$groups
+    }
+    
+    groupes$modality <- rownames(groupes)
+    
+    calc_short <- tolower(trimws(strsplit(calc, " ")[[1]][1]))  # ex: "frequence"
+    mean_col <- paste0("mean_", calc_short)
+    group_col <- paste0("groups_", calc_short)
+    
+    moyennes <- stats::aggregate(df[[value_col]], by = list(df[[trt_col]]), FUN = mean)
+    names(moyennes) <- c("modality", mean_col)
+    
+    groupes <- merge(groupes, moyennes, by = "modality")
+    
+    # Rename column "groups" after merge
+    names(groupes)[names(groupes) == "groups"] <- group_col
+    
+    # Order properly
+    groupes <- groupes[order(groupes[[group_col]], groupes[[mean_col]]), ]
+    
+    # Select relevant columns
+    results_list[[calc_short]] <- groupes[, c("modality", mean_col, group_col)]
   }
-
-  if (!is.null(force_test) && force_test == "anova" ||
-      is.null(force_test) && p_norm > alpha && p_var > alpha) {
-    test_type <- "Anova"
-    model <- stats::aov(formula, data = df)
-    pval <- summary(model)[[1]][["Pr(>F)"]][1]
-
-    groupes <- switch(
-      group_method,
-      SNK = agricolae::SNK.test(model, trt = trt_col, group = TRUE)$groups,
-      LSD = agricolae::LSD.test(model, trt = trt_col, group = TRUE)$groups,
-      stop("Invalid group_method for ANOVA.")
-    )
-
-  } else {
-    test_type <- "Kruskal"
-    pval <- stats::kruskal.test(formula, data = df)$p.value
-    groupes <- agricolae::kruskal(df[[value_col]], df[[trt_col]], group = TRUE)$groups
-  }
-
-  groupes$modality <- rownames(groupes)
-  moyennes <- stats::aggregate(df[[value_col]], by = list(df[[trt_col]]), FUN = mean)
-  names(moyennes) <- c("modality", "mean")
-
-  groupes <- merge(groupes, moyennes, by = "modality")
-  groupes <- groupes[order(groupes$groups, groupes$mean), ]
-  rownames(groupes) <- groupes$modality
-  groupes <- groupes[, c("modality", "mean", "groups")]
-
-  return(list(test = test_type, p_value = pval, groupes = groupes))
+  
+  # Merge all results
+  final <- Reduce(function(x, y) merge(x, y, by = "modality", all = TRUE), results_list)
+  
+  # Optional sort by first group_col then modality
+  group_cols <- grep("^groups_", names(final), value = TRUE)
+  sort_cols <- c(group_cols, "modality")
+  final <- final[do.call(order, final[sort_cols]), ]
+  
+  return(final)
 }
 
 # Residual normality test (Shapiro-Wilk)
