@@ -10,7 +10,7 @@ combine_and_reorder_obs(obs_data)
 \item{obs_data}{A named list of harmonized observation dataframes. Each element should contain at least some of the standard columns like \code{plot_id}, \code{bbch_stage}, etc.}
 }
 \value{
-A single combined dataframe with standard columns (\code{prov_name}, \code{prov_date}, \code{observation_date}, \code{bbch_stage}, \code{plot_id}) appearing first, followed by all other columns in their original order.
+A single combined dataframe with standard columns (\code{observation_date}, \code{bbch_stage}, \code{plot_id}) appearing first, followed by all other columns in their original order.
 }
 \description{
 Combines all observation datasets into a single dataframe and reorders columns

@@ -84,7 +84,7 @@ None. Modifies the \code{metadata} list in-place.
 Adds a new observation dataset to \code{obs_data} or replaces an existing one.
 Automatically logs the operation and adds provenance columns.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{user_data$add_obs(name, df, overwrite = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{user_data$add_obs(name, df, source_file = NULL, overwrite = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
