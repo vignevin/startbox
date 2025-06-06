@@ -17,7 +17,7 @@
 #' - If `self$combined_data` is not set, calls to `combine_data_obs()` are made automatically.
 #'
 #' @export
-prepare_final_data <- function(self) {
+merge_data_metadata <- function(self) {
   
   self$combine_data_obs()
   
@@ -27,17 +27,14 @@ prepare_final_data <- function(self) {
   }
   
   # Step 1. Join plot and modality
-  self$metadata$plot_desc$factor_level_code <- as.character(self$metadata$plot_desc$factor_level_code)
+  self$metadata$plot_desc$xp_trt_code <- as.character(self$metadata$plot_desc$xp_trt_code)
   self$metadata$moda_desc$xp_trt_code <- as.character(self$metadata$moda_desc$xp_trt_code)
   
   df_plot_moda <- dplyr::left_join(
     self$metadata$plot_desc,
     self$metadata$moda_desc,
-    by = c("factor_level_code" = "xp_trt_code")
+    by = "xp_trt_code"
   )
-  
-  # Explicitly add xp_trt_code
-  df_plot_moda$xp_trt_code <- df_plot_moda$factor_level_code
   
   # Step 2. Add observation data
   if (length(self$obs_data) == 0) {
@@ -49,7 +46,6 @@ prepare_final_data <- function(self) {
     message("Combined data is not ready yet. Call combine_data_obs() first.")
     return(NULL)
   }
-  
   df_obs <- self$combined_data
   df_obs$plot_id <- as.character(df_obs$plot_id)
   df_plot_moda$plot_id <- as.character(df_plot_moda$plot_id)
@@ -70,7 +66,7 @@ prepare_final_data <- function(self) {
 #'
 #' @param obs_data A named list of harmonized observation dataframes. Each element should contain at least some of the standard columns like `plot_id`, `bbch_stage`, etc.
 #'
-#' @return A single combined dataframe with standard columns (`prov_name`, `prov_date`, `observation_date`, `bbch_stage`, `plot_id`) appearing first, followed by all other columns in their original order.
+#' @return A single combined dataframe with standard columns (`observation_date`, `bbch_stage`, `plot_id`) appearing first, followed by all other columns in their original order.
 #'
 #' @details
 #' - The function is typically used after harmonizing all observation datasets.
@@ -81,7 +77,7 @@ prepare_final_data <- function(self) {
 combine_and_reorder_obs <- function(obs_data) {
   combined <- dplyr::bind_rows(obs_data)
 
-  template_cols <- c("prov_name", "prov_date", "observation_date", "bbch_stage", "plot_id")
+  template_cols <- c("observation_date", "bbch_stage", "plot_id")
   valid_cols <- intersect(template_cols, names(combined))
   ordered_cols <- c(valid_cols, setdiff(names(combined), valid_cols))
 
@@ -113,7 +109,7 @@ merge_with_existing_data <- function(wb, combined) {
     old_data <- openxlsx2::wb_read(wb, sheet = "data")
 
     # Harmonize sensitive columns as character
-    columns_to_character <- c("prov_name", "prov_date", "observation_date", "bbch_stage", "plot_id")
+    columns_to_character <- c("observation_date", "bbch_stage", "plot_id")
     for (col in columns_to_character) {
       if (col %in% names(old_data)) old_data[[col]] <- as.character(old_data[[col]])
       if (col %in% names(combined)) combined[[col]] <- as.character(combined[[col]])
