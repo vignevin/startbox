@@ -73,8 +73,9 @@ user_data <- R6::R6Class(
     #' @param overwrite Logical. If TRUE, replaces an existing entry with the same name.
     #' 
     #' @return None. The object is modified in place.
-    add_obs = function(name, df, overwrite = FALSE) {
-      filename_base <- name  # 🔹 Juste le nom du fichier (pas de ":" ni de feuille)
+    add_obs = function(name, df, source_file = NULL,  overwrite = FALSE) {
+      
+      filename_base <- if (!is.null(source_file)) source_file else name     
       
       if (name %in% names(self$obs_data)) {
         if (!overwrite) {
@@ -98,10 +99,6 @@ user_data <- R6::R6Class(
           description = "New observation added via add_obs"
         )
       }
-      
-      # Add provenance info
-      df$prov_name <- as.character(name)
-      df$prov_date <- format(Sys.Date(), "%d/%m/%Y")
       
       self$obs_data[[name]] <- df
     },
