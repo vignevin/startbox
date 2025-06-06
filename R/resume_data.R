@@ -62,8 +62,8 @@ resume_data <- function(
         ) -> mean_tnt
 
       if (is.na(mean_tnt[1, 1]) | nrow(mean_tnt) == 0) {
-        print("no TNT value(s) found in data, please check your data")
-        stop()
+        warning("⚠️ No TNT value(s) found for efficacy calculation. Skipping this iteration.")
+        next
       } else {print(paste(unique(mean_tnt$nb_tnt),code_tnt,"used for calculation of efficacy"))}
 
       if ("plot_id" %in% colnames(mean_tnt)) {
@@ -110,7 +110,7 @@ resume_data <- function(
 
   }
   return(data_resume)
-} #end function
+} 
 
 
 
