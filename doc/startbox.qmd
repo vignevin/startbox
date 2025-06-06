@@ -189,7 +189,7 @@ Cette fonction est à utiliser avec précaution ! Dans tous les cas, il est pré
 Le tableau ci-dessous résume les fonctions intégrées au package :
 
 | Calcul | Fonction {startbox} | Description |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | Fréquence d'attaque | `incidence` | Cette fonction calcule la fréquence de la maladie dans la population observée, c'est à dire le nombre d'unités échantillonnées (feuilles, régimes, plantes…) atteintes exprimé en pourcentage du nombre total d'unités évaluées. |
 | Intensité d'attaque | `intensity` | Cette fonction calcule l'intensité de la maladie, comme la valeur moyenne des mesures de séverité. L'intensité de la maladie correspond à la quantité de maladie présente dans la population, exprimée en pourcentage. |
 | Efficacité | `efficacy` | Cette fonction calcule l'efficacité, c'est à dire le niveau de réduction des organismes nuisibles ciblés ou des dommages qu'ils causent à la plante, après application d'un traitement, par rapport à un témoin non traité. L'efficacité est exprimée en pourcentage. |
@@ -335,7 +335,7 @@ Pour la réalisation de la heatmap il est nécessaire d'utiliser la fonction pre
 
 df_complet <- merge(F_plot, mydata2$metadata$moda_desc, all.x=T)
 df_complet <- merge(df_complet, mydata2$metadata$plot_desc, all.x=T)
-print(df_complet)
+print(head(df_complet))
 ```
 
 ## Barplot

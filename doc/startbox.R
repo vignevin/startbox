@@ -166,7 +166,7 @@ test_stats(data = F_plot, value_col = "value")
 
 df_complet <- merge(F_plot, mydata2$metadata$moda_desc, all.x=T)
 df_complet <- merge(df_complet, mydata2$metadata$plot_desc, all.x=T)
-print(df_complet)
+print(head(df_complet))
 
 
 ## -----------------------------------------------------------------------------
