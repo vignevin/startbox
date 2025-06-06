@@ -68,6 +68,8 @@ usethis::use_package("openxlsx2", min_version = "1.14")
 usethis::use_package("ggplot2", min_version = "3.5.1")
 usethis::use_package("dplyr", min_version = "1.1.4")
 usethis::use_package("agricolae", min_version = "1.3-7")
+usethis::use_package("rlang")
+
 
 
 devtools::document()
