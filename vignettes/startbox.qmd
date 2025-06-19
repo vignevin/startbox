@@ -26,19 +26,6 @@ Le package {startbox} est dédié à la gestion et à l'analyse des données d'e
 # Manipulation des données
 
 Le package `{startbox}` propose plusieurs fonctions pour charger, importer et exporter des données en interaction avec un fichier standard Excel.
-
-## Exporter le fichier Excel standard
-
-Le package fonctionne avec un fichier Excel standard, qui stocke les données descriptives de l'essai (les modalités mises en place, les caractéristiques de la parcelle, le plan d'expérience) et les données observées. Ce modèle de fichier standard est accessible avec la fonction get_template_excel().
-
-```{r}
-#| label: get_template_excel
-#| include: false
-
-startbox::get_template_excel()
-
-```
-
 Vous pourrez compléter ultérieurement ce fichier directement dans Excel.
 
 ## Créer un objet `user_data`
@@ -55,10 +42,10 @@ Deux cas sont possibles lors de la création :
 
 ```{r}
 # Cas 1 : création d'un objet vide
-mydata <- user_data$new()
+mydata <- startbox::user_data$new()
 
 # Cas 2 : création d'un objet avec fichier Excel existant
-mydata2 <- user_data$new(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
+mydata2 <- startbox::user_data$new(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
 ```
 
 ## Charger des données
@@ -70,7 +57,7 @@ Les feuilles de métadonnées (placette, modalite) peuvent être chargées dans 
 Elles sont stockées dans l'objet de classe `user_data.`
 
 ```{r}
-load_metadata_sheets(mydata2)
+startbox::load_metadata_sheets(mydata2)
 ```
 
 ### Charger les feuilles d'observations
@@ -80,7 +67,7 @@ La fonction `import_data_sheets` permet de charger dans l'environnement de trava
 Elles sont stockées dans l'objet de classe `user_data.`
 
 ```{r}
-load_data_sheets(mydata2)
+startbox::load_data_sheets(mydata2)
 
 ```
 
@@ -89,7 +76,7 @@ load_data_sheets(mydata2)
 Pour automatiser l'ensemble des étapes de chargement des données, la fonction `wrapper_data` permet de réaliser les fonctions `load_metadata_sheets` et `load_data_sheets` en une seule commande.
 
 ```{r}
-wrapper_data(mydata2)
+startbox::wrapper_data(mydata2)
 ```
 
 ## Importer des données d'observation
@@ -104,7 +91,7 @@ myfilepath <- system.file("extdata","teisso_2024_dataF2.csv",package="startbox")
 data1 <- read.csv2(myfilepath)
 
 # Ajout direct dans l'objet user_data avec le nom du fichier
-mydata2$add_obs(name = basename(myfilepath), df = data1)
+startbox::mydata2$add_obs(name = basename(myfilepath), df = data1)
 ```
 
 L'utilisateur pourra ultérieurement exporter le fichier Excel standardisé avec une nouvelle feuille qui contiendra ces données d'observations.
@@ -121,7 +108,7 @@ Il est possible d'utiliser la fonction `standardise_topvigne_csv` qui permet de 
 file_path <- system.file("extdata","maladie_teisso_2024_11h12min_F1_17.06.csv",package="startbox")
 
 # verification si le fichier est issu de topvigne & importation 
-data_F1 <- standardise_topvigne_csv(file_path)
+data_F1 <- startbox::standardise_topvigne_csv(file_path)
 head(data_F1)
 ```
 
@@ -129,7 +116,7 @@ Les données sont ensuite ajoutées à l'objet `user_data`.
 
 ```{r}
 # Ajout direct dans l'objet user_data avec le nom du fichier
-mydata2$add_obs(name = "F1", df = data_F1)
+startbox::mydata2$add_obs(name = "F1", df = data_F1)
 ```
 
 ## Exporter les données
@@ -139,7 +126,7 @@ La fonction `export_data_sheets` permet de créer une nouvelle version du fichie
 ```{r}
 #| include: false
 #| 
-export_data_sheets(mydata2)
+startbox::export_data_sheets(mydata2)
 ```
 
 # Calculer les tableaux de résumé
@@ -149,7 +136,7 @@ Le jeu de données d'observation qui sera utilisé à titre d'exemple est le jeu
 Par commodité, il est stocké dans le `dataframe` data_F1.
 
 ```{r}
-data_F1 <- mydata2$obs_data$F1
+data_F1 <- startbox::mydata2$obs_data$F1
 head(data_F1)
 ```
 
@@ -171,7 +158,7 @@ Avant de poursuivre, il est possible d'extraire quelques informations de plot_id
 
 ```{r}
 # recuperation des codes des traitements dans la colonne xp_trt_code
-data_F1$xp_trt_code <- remove_string_pairwise(vec=data_F1$plot_id,
+data_F1$xp_trt_code <- startbox::remove_string_pairwise(vec=data_F1$plot_id,
                                               pattern = data_F1$plot_block)
 
 head(data_F1)
@@ -202,13 +189,13 @@ obs_moda <- c(0,0,0,0,10,5,0,2,0,0,0,15,20,50)
 obs_tnt <- c(10,20,60,0,100,50,0,20,0,10,20,15,2,50)
 
 
-incidence(obs_moda)
-intensity(obs_moda)
-severity_diseased(obs_moda)
+startbox::incidence(obs_moda)
+startbox::intensity(obs_moda)
+startbox::severity_diseased(obs_moda)
 
 # l'efficacité est calculée en comparant une valeur dans une modalité à la valeur de la même variable obtentue dans le témoin non traité
-efficacy(incidence(obs_moda),
-         value_tnt = incidence(obs_tnt))
+startbox::efficacy(startbox::incidence(obs_moda),
+         value_tnt = startbox::incidence(obs_tnt))
 ```
 
 ## Calcul de la fréquence et de l'intensité d'attaque à partir d'un jeu de données d'observations
@@ -222,17 +209,17 @@ Le résultat est un dataframe, incluant une colonne `calculation` qui précise l
 ```{r}
 #| lable: load_obs
 
-F_I_placette <- resume_data(data_F1,
+F_I_placette <- startbox::resume_data(data_F1,
                             var_col = "PM_LEAF_PC", 
                             group_cols = c("plot_id","xp_trt_code","plot_block"),
-                            funs = list(intensite = intensity, frequence = incidence))
+                            funs = list(intensite = startbox::intensity, frequence = startbox::incidence))
 head(F_I_placette)
 ```
 
 Il est possible de passer un tableau résumé en format "wide" avec la fonction `resume_pivot_wider`.
 
 ```{r}
-head(resume_pivot_wider(F_I_placette))
+head(startbox::resume_pivot_wider(F_I_placette))
 ```
 
 ### Calcul par modalité
@@ -242,11 +229,11 @@ Une fois le calcul fait par placette, il est possible de faire la moyenne par mo
 Ici le calcul est fait uniquement sur la fréquence pour rendre plus lisible l'affichage.
 
 ```{r}
-F_moda <- resume_data(F_I_placette %>% dplyr::filter(calculation == "frequence PM_LEAF_PC"),
+F_moda <- startbox::resume_data(F_I_placette %>% dplyr::filter(calculation == "frequence PM_LEAF_PC"),
                       var_col = "value",
                       group_cols = c("xp_trt_code"),
                       funs = list(moyenne = mean, ecart_type = sd))
-head(resume_pivot_wider(F_moda))
+head(startbox::resume_pivot_wider(F_moda))
 ```
 
 Avec la même logique, il est possible de faire le calcul par bloc.
@@ -266,10 +253,10 @@ Dans le cas le plus simple, l'efficacité de traitement est calculée pour chaqu
 [^1]: Par défaut, les observations concernant les TNT sont identifés en recherchant la chaîne de charactères "TNT" dans les lignes du tableau.
 
 ```{r}
-eff_par_placette <- resume_data(F_I_placette,
+eff_par_placette <- startbox::resume_data(F_I_placette,
             var_col = "value",
             group_cols = c("plot_id"),
-            funs=list(efficacite=efficacy))
+            funs=list(efficacite=startbox::efficacy))
 head(eff_par_placette)
 
 ```
@@ -300,10 +287,10 @@ head(df_plot_tnt)
 
 ```{r}
 # calcul de l'efficacité en tenant compte de l'association de chaque placette avec son TNT
-eff_placette_tnt <- resume_data(F_I_placette,
+eff_placette_tnt <- startbox::resume_data(F_I_placette,
             var_col = "value",
             group_cols = c("plot_id"),
-            funs=list(efficacite=efficacy),
+            funs=list(efficacite=startbox::efficacy),
             df_tnt = df_plot_tnt)
 head(eff_placette_tnt)
 ```
@@ -316,12 +303,12 @@ La fonction `test_stats()` permet de comparer les modalités de traitement en fo
 
 ```{r}
 ## tableau bilan sur la fréquence
-F_plot <- resume_data(data_F1,
+F_plot <- startbox::resume_data(data_F1,
                             var_col = "PM_LEAF_PC", 
                             group_cols = c("plot_id","xp_trt_code","plot_block"),
-                            funs = list(frequence = incidence, intensité = intensity))
+                            funs = list(frequence = startbox::incidence, intensité = startbox::intensity))
 
-test_stats(data = F_plot, value_col = "value")
+startbox::test_stats(data = F_plot, value_col = "value")
 ```
 
 # Réaliser les graphiques
@@ -342,7 +329,7 @@ print(head(df_complet))
 La fonction plot_xpbar permet de réaliser un graphique classique, dit "en batons".
 
 ```{r}
-plot_xpbar(df_complet,xcol="xp_trt_code",ycol="value",fillcol="calculation",show_errorbar = T)
+startbox::plot_xpbar(df_complet,xcol="xp_trt_code",ycol="value",fillcol="calculation",show_errorbar = T)
 ```
 
 ## Heatmap
@@ -350,7 +337,7 @@ plot_xpbar(df_complet,xcol="xp_trt_code",ycol="value",fillcol="calculation",show
 La fonction `plot_xpheat` permet de visualiser l’intensité ou la fréquence d’attaque directement sur une carte thermique, en représentant les valeurs par placette sous forme de couleurs. Cela facilite l’identification des zones les plus touchées ou les effets spatiaux éventuels dans la parcelle.
 
 ```{r}
-plot_xpheat(df_complet, variable = "value", caption = "IFV")
+startbox::plot_xpheat(df_complet, variable = "value", caption = "IFV")
 ```
 
 ## Boxplot
@@ -358,7 +345,5 @@ plot_xpheat(df_complet, variable = "value", caption = "IFV")
 La fonction plot_xpbox() permet de visualiser la répartition des valeurs observées pour chaque modalité sous forme de boîtes à moustaches. Ce type de graphique est particulièrement utile pour : - évaluer la dispersion des observations, - identifier les valeurs extrêmes ou atypiques, - comparer visuellement les distributions entre modalités.
 
 ```{r}
-library(dplyr)
-
-plot_xpbox(df_complet, calculation_type = "frequence", show_dots = TRUE)
+startbox::plot_xpbox(df_complet, calculation_type = "frequence", show_dots = TRUE)
 ```
