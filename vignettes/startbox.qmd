@@ -20,7 +20,7 @@ Le package {startbox} est dédié à la gestion et à l'analyse des données d'e
 
 ```{r}
 #| label: setup
-library(startbox)
+#library(startbox)
 ```
 
 # Manipulation des données
