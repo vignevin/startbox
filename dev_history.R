@@ -58,6 +58,11 @@ usethis::use_readme_rmd()
 ## creer une vignette
 usethis::use_vignette("startbox.qmd")
 
+## creer site
+usethis::use_pkgdown()
+pkgdown::build_site()
+usethis::use_pkgdown_github_pages()
+
 
 ### dependencies
 #usethis::use_package("R6", min_version = "2.6.1")
@@ -75,3 +80,4 @@ usethis::use_package("rlang")
 devtools::document()
 devtools::build_rmd("vignettes/startbox.qmd")
 devtools::check()
+devtools::build_vignettes()
