@@ -25,28 +25,45 @@ Le package {startbox} est dédié à la gestion et à l'analyse des données d'e
 
 # Manipulation des données
 
-Le package `{startbox}` propose plusieurs fonctions pour charger, importer et exporter des données en interaction avec un fichier standard Excel.
+Le package `{startbox}` propose plusieurs fonctions pour charger, importer et exporter des données en interaction avec un fichier standard Excel. Ce modèle de fichier standard est accessible avec la fonction get_template_excel().
+
+```{r}
+startbox::get_template_excel()
+```
+
 Vous pourrez compléter ultérieurement ce fichier directement dans Excel.
 
 ## Créer un objet `user_data`
 
-Le package fonctionne avec un objet de classe `user_data`. Cet objet permet de manipuler dans l'environnement R les données d'observations et les métadonnées associées à un essai.
+Le package fonctionne avec un objet de classe `user_data`. Cet objet permet de manipuler dans l'environnement R les données d'observations et les métadonnées associées à un essai. Deux cas sont possibles lors de la création :
 
 **La première étape est de créer cet objet.**
 
 Deux cas sont possibles lors de la création :
 
--   **Sans fichier Excel :** l'objet est vide, aucune donnée n'est chargée.
+### Cas 1 : Sans fichier Excel
 
--   **Avec un fichier Excel fourni :** le fichier est associé à l'objet, mais les données (observations et métadonnées) doivent être importées manuellement avec les fonctions dédiées.
+On peut décider de créer l’objet ‘user_data’ dans le cas où nous voulons commencer la suivie d’un essai où que nous n’avons pas besoins de charger les données du fichiers Excel (données d’observations et données sur les placettes et modalités (métadonnées)).
+
+Dans ce cas on se basera sur le fichier Excel, qui est le fichier vierge sans données simplement les feuilles et les tableaux vides. On crée dans ce cas la classe de cette manière :
 
 ```{r}
 # Cas 1 : création d'un objet vide
 mydata <- startbox::user_data$new()
+```
 
+### Cas 2 : Avec un fichier Excel fourni
+
+On décide de créer l’objet ‘user_data’ dans le cas où nous avons déjà un fichier Excel comprenant les données d’un essai. On crée la classe de l’objet de cette façon, en mettant dans le ‘trial_file’ le chemin de notre fichier Excel :
+
+```{r}
 # Cas 2 : création d'un objet avec fichier Excel existant
 mydata2 <- startbox::user_data$new(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
 ```
+
+On lui affecte un nom au départ (ici mydata2) que nous réutiliserons tout au long de l’utilisation du package.
+
+Lorsqu’on a créé l’objet avec un fichier Excel nous avons plusieurs options qui se proposent à nous, le chargement des données d’observations et le chargement des métadonnées.
 
 ## Charger des données
 
@@ -62,7 +79,7 @@ startbox::load_metadata_sheets(mydata2)
 
 ### Charger les feuilles d'observations
 
-La fonction `import_data_sheets` permet de charger dans l'environnement de travail toutes les feuilles dont le nom commence par 'data\_'.
+La fonction `load_data_sheets` permet de charger dans l'environnement de travail toutes les feuilles dont le nom commence par 'data\_'.
 
 Elles sont stockées dans l'objet de classe `user_data.`
 
@@ -175,7 +192,7 @@ Cette fonction est à utiliser avec précaution ! Dans tous les cas, il est pré
 Le tableau ci-dessous résume les fonctions intégrées au package :
 
 | Calcul | Fonction {startbox} | Description |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | Fréquence d'attaque | `incidence` | Cette fonction calcule la fréquence de la maladie dans la population observée, c'est à dire le nombre d'unités échantillonnées (feuilles, régimes, plantes…) atteintes exprimé en pourcentage du nombre total d'unités évaluées. |
 | Intensité d'attaque | `intensity` | Cette fonction calcule l'intensité de la maladie, comme la valeur moyenne des mesures de séverité. L'intensité de la maladie correspond à la quantité de maladie présente dans la population, exprimée en pourcentage. |
 | Efficacité | `efficacy` | Cette fonction calcule l'efficacité, c'est à dire le niveau de réduction des organismes nuisibles ciblés ou des dommages qu'ils causent à la plante, après application d'un traitement, par rapport à un témoin non traité. L'efficacité est exprimée en pourcentage. |
