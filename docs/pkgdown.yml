@@ -1,9 +1,0 @@
-pandoc: '3.2'
-pkgdown: 2.1.3
-pkgdown_sha: ~
-articles:
-  startbox: startbox.html
-last_built: 2025-06-25T07:48Z
-urls:
-  reference: https://vignevin.github.io/startbox/reference
-  article: https://vignevin.github.io/startbox/articles
