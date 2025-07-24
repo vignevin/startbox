@@ -59,6 +59,9 @@ devtools::document()
 ## logo
 usethis::use_logo("logo_startbox.png")
 
+## add url
+usethis::use_github_links()
+
 ## creer readMe
 usethis::use_readme_rmd()
 
