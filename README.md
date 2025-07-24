@@ -35,8 +35,8 @@ devtools::install(build_vignettes = TRUE)
 Once installed, you can access the vignette with:
 
 ``` r
-vignette("startbox")
-#> Warning: vignette 'startbox' introuvable
+vignette("quickstart","startbox")
+#> démarrage du serveur d'aide httpd ... fini
 ```
 
 ## Contribution

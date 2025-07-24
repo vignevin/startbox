@@ -41,7 +41,7 @@ devtools::install(build_vignettes = TRUE)
 Once installed, you can access the vignette with:
 
 ```{r}
-vignette("startbox")
+vignette("quickstart","startbox")
 ```
 
 ## Contribution
