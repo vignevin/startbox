@@ -1,6 +1,6 @@
 Package: startbox
 Title: visualisation and standardization of experimental data in plant protection
-Version: 0.0.0.9000
+Version: 1.0.0
 Authors@R: c(
     person("Xavier", "Delpuech", , "xavier.delpuech@vignevin.com", role = c("aut", "cre")),
     person("Hervé", "Maire", , "herve.maire@vignevin.com", role = "aut"),
