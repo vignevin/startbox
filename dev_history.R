@@ -70,7 +70,8 @@ usethis::use_version()
 
 ## creer site
 usethis::use_pkgdown()
-pkgdown::build_site()
+pkgdown::clean_site()
+pkgdown::build_site(override = list(destination = "docs"))
 usethis::use_pkgdown_github_pages()
 
 
