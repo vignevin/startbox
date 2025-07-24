@@ -13,13 +13,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-# startbox
+# startbox <img src="man/figures/logo.png" align="right" height="139"/>
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The goal of startbox is to manage and visualize experimental data in plant protection trials.
-
 
 This R package was developped as part of the STAR project 2024-2027 (France), with the support of the French Ministry of Agriculture and Food, and the financial contribution of the special allocation account for agricultural and rural development (CASDAR). The responsability of the French Ministry of Agriculture and Food cannot be engaged.
 
@@ -27,48 +27,23 @@ This R package was developped as part of the STAR project 2024-2027 (France), wi
 
 You can install the development version of startbox from [GitHub](https://github.com/) with:
 
-```{r echo = TRUE, results = "hide", message = FALSE, warning = FALSE}
+```{r echo = TRUE, results = "hide", message = FALSE, warning = FALSE, eval = FALSE}
 #install.packages("devtools")  # if not already installed
 devtools::install_github("vignevin/startbox")
 ```
 
 If you also want to install the vignette (which serves as a tutorial for the package), run this after installation:
-```{r echo = TRUE, results = "hide", message = FALSE, warning = FALSE}
+
+```{r echo = TRUE, results = "hide", message = FALSE, warning = FALSE, eval = FALSE}
 devtools::install(build_vignettes = TRUE)
 ```
 
 Once installed, you can access the vignette with:
+
 ```{r}
 vignette("startbox")
 ```
 
-## Example
-
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-#library(startbox)
-## basic example code
-```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
-
 ## Contribution
 
 You can contribute to this projetc project by creating a pull request, or use issues to track bugs or suggest ideas in a repository.
-
-

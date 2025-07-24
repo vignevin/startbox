@@ -11,13 +11,19 @@ while tracking operations for reproducibility.
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
-\item{\code{excel_data_trial}}{Path to the current Excel file used for import/export operations.}
+\item{\code{name}}{name of the user_data object, by default "user_data".}
 
-\item{\code{combined_data}}{A data.frame containing all observation data merged and standardized.}
+\item{\code{excel_data_trial}}{Path to the current Excel file used for import/export operations.}
 
 \item{\code{obs_data}}{A named list of data.frames, each corresponding to a sheet or file containing observation data.}
 
 \item{\code{metadata}}{A list storing metadata tables, such as "placette" and "modalite".}
+
+\item{\code{plot_tnt_association}}{A list storing association tables between plot and TNT.}
+
+\item{\code{prepared_data}}{A list storing prepared_data tables ready for stats analysis as produced by the function prepare_data()}
+
+\item{\code{stats}}{A list storing stats results as results of the function stats_tests()}
 
 \item{\code{traceability}}{A data.frame storing a log of all operations performed on the data (import, export, update, etc.).}
 }
@@ -31,7 +37,6 @@ while tracking operations for reproducibility.
 \item \href{#method-UserData-add_obs}{\code{user_data$add_obs()}}
 \item \href{#method-UserData-show_obs_data}{\code{user_data$show_obs_data()}}
 \item \href{#method-UserData-log_trace}{\code{user_data$log_trace()}}
-\item \href{#method-UserData-combine_data_obs}{\code{user_data$combine_data_obs()}}
 \item \href{#method-UserData-clone}{\code{user_data$clone()}}
 }
 }
@@ -41,13 +46,15 @@ while tracking operations for reproducibility.
 \subsection{Method \code{new()}}{
 Initializes a new \code{user_data} object. If no Excel file is provided, a default template is used.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{user_data$new(trial_file = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{user_data$new(trial_file = NULL, name = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{trial_file}}{Optional. Path to the Excel file to load. If NULL, a default template is used.}
+
+\item{\code{name}}{optional. A string to name the new \code{user_data} object}
 }
 \if{html}{\out{</div>}}
 }
@@ -94,6 +101,8 @@ Automatically logs the operation and adds provenance columns.
 
 \item{\code{df}}{A data.frame containing the observation data.}
 
+\item{\code{source_file}}{the source file path}
+
 \item{\code{overwrite}}{Logical. If TRUE, replaces an existing entry with the same name.}
 }
 \if{html}{\out{</div>}}
@@ -131,25 +140,13 @@ It records the type of operation, the target file or sheet name(s), and the time
 \item{\code{operation}}{A character string describing the action performed (e.g. \code{"import"}, \code{"export"}, \code{"update"}).}
 
 \item{\code{filename}}{A character string indicating the name(s) of the file or sheet involved in the operation.}
+
+\item{\code{description}}{A description of the operation to store in log}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
 No return value. This function updates the internal \code{traceability} data frame.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-UserData-combine_data_obs"></a>}}
-\if{latex}{\out{\hypertarget{method-UserData-combine_data_obs}{}}}
-\subsection{Method \code{combine_data_obs()}}{
-Combines all loaded observation datasets, applies type harmonization, and merges them with an existing Excel trial file.
-If the Excel trial file does not exist, it is created from a template. Also reads available metadata sheets.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{user_data$combine_data_obs()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-A combined \code{data.frame} of all observations, stored in \code{self$combined_data} and returned invisibly.
 }
 }
 \if{html}{\out{<hr>}}

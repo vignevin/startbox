@@ -1,0 +1,76 @@
+---
+title: "topvigne"
+format:
+  html:
+    code-copy: true
+    code-overflow: wrap
+vignette: >
+  %\VignetteIndexEntry{topvigne}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+Les données d'observations maladies peuvent être collectées grâce à l'application TopVigne. Cette application génère un fichier csv contenant l'ensemble des observations réalisées sur le terrain.
+
+Le package startbox permet leur formatage et importation directement dans le fichier Excel standard.
+
+## Initialisation de `user_data` dans R
+
+```{r}
+#| label: setup
+library(startbox)
+# Création d'un objet avec fichier Excel modèle vide fourni avec le package
+mydata <- user_data$new(trial_file = system.file("extdata","template.xlsx",package="startbox"))
+```
+
+Si vous avez déjà un fichier Excel standard, il suffit de donner le chemin d'accès vers ce fichier au paramètre `trial_file`. La fonction `file.choose()` est très pratique pour une sélection interactive
+
+```{r eval= FALSE}
+mydata <- user_data$new(trial_file = file.choose()) ## ici la sélection du fichier se fait de manière interactive
+```
+
+## Importer les données topvigne dans R
+
+La fonction `standardise_topvigne_csv` qui permet de transformer et standardiser les données collectées avec Topvigne.
+
+```{r}
+#| label: load_obs
+# ici le fichier est un fichier exemple fourni avec le package
+file_path <- system.file("extdata","maladie_teisso_2024_11h12min_F1_17.06.csv",package="startbox")
+# verification si le fichier est issu de topvigne & importation 
+data_F1 <- startbox::standardise_topvigne_csv(file_path)
+head(data_F1) ## afficher les premières lignes du dataframe
+```
+
+De la même manière que précédemment, une sélection interactive peut-être réalisée avec `file_path = file.choose()`.
+
+## Ajouter les données à mon objet `user_data`
+
+Une fois que l'importation est réalisée et validée, il faut ajouter les données à l'objet `user_data`.
+
+```{r}
+# Ajout direct dans l'objet user_data avec le nom du fichier
+mydata$add_obs(name = "F1", df = data_F1)
+```
+
+Une fois les données importées dans votre objet `user_data`, il est possible de les analyser et visualiser.
+
+## Exporter le fichier
+
+La fonction `export_data_sheets` permet de créer une nouvelle version du fichier Excel en y ajoutant les feuilles data présentes dans l'objet. Le fichier est exporté avec un horodatage automatique.
+
+```{r}
+#| include: false
+#| 
+export_data_sheets(mydata)
+```
+
+N'oubliez pas de compléter ensuite les feuilles "placette" et "modalite" du fichier Excel.
+
+::: callout-important
+Un fichier Excel ouvert ne peut pas être chargé ni modifié par {startbox} : n'oubliez-pas de fermer vos fichiers avant de lancer les fonctions `user_data$new()` ou `export_data_sheets()`
+:::

@@ -5,32 +5,38 @@
 \title{Plot a Heatmap of Experimental Data}
 \usage{
 plot_xpheat(
-  data,
-  variable,
-  titre = NULL,
-  echelle = NULL,
-  orientation = c("vertical", "horizontal"),
-  residus = FALSE,
-  fill = NULL,
-  caption = NULL
+  self,
+  stats = NULL,
+  calculation_choices = NULL,
+  max_y = NULL,
+  flip_orientation = FALSE,
+  yx_ratio = 0.3,
+  resids = FALSE,
+  midpoint = NULL,
+  short_names = FALSE,
+  ...
 )
 }
 \arguments{
-\item{data}{A dataframe containing at least 'plot_id', 'plot_x', 'plot_y', the variable of interest, and optionally 'calculation'.}
+\item{self}{An instance of the \code{UserData} R6 class}
 
-\item{variable}{Character. The name of the column representing the variable to display (e.g., "PM_LEAF_PC").}
+\item{stats}{character, the name of a stats list inside self$stats.}
 
-\item{titre}{(optional) Character. Title of the plot. If NULL, a default title based on the variable is used.}
+\item{calculation_choices}{vector of character, choice(s) of calculation to plot. For example c("FA UN_BER_PC","IA UN_BER_PC")}
 
-\item{echelle}{(optional) Numeric. Maximum value for the fill color scale. If NULL, an automatic scale is calculated.}
+\item{max_y}{(optional) Numeric. Maximum value for the fill color scale. If NULL, an automatic scale is calculated.}
 
-\item{orientation}{Character. Either "vertical" or "horizontal" to control plot orientation. Default is "vertical".}
+\item{flip_orientation}{TRUE or FALSE to control plot orientation. Default is FALSE. see ?ggplot2::coord_flip()}
 
-\item{residus}{Logical. If TRUE, centers the values by subtracting the global mean (residual visualization).}
+\item{yx_ratio}{specified ratio between the physical representation of data units on the axes. see ?ggplot2::coord_fixed()}
 
-\item{fill}{Optional. A vector of two colors (e.g., c("yellow", "red")) to manually define the fill gradient. Ignored if \code{residus = TRUE}.}
+\item{resids}{Logical. If TRUE, residuals are calculated from the linear model and plotted}
 
-\item{caption}{Character. A string used as the caption text displayed at the bottom of the plot. Default is "IFV+".}
+\item{midpoint}{numeric, value of midpoint for fill_scale. Automatically set to 0 if resids = T or more than one calculation}
+
+\item{short_names}{to have shorter names for fill removing the last part of the string after the last space occurence}
+
+\item{...}{other parameters for labs (title, x, y,fill, caption). see ?ggplot2::labs()}
 }
 \value{
 A ggplot2 heatmap object.
@@ -42,7 +48,6 @@ using \code{plot_x} and \code{plot_y} coordinates and coloring according to a se
 \details{
 \itemize{
 \item Aggregates values by \code{plot_id}, taking the mean when multiple observations exist.
-\item If no *_PC variable is found in the data, the function will stop with an error.
 \item Useful for visualizing spatial patterns of disease in experimental trials.
 }
 }

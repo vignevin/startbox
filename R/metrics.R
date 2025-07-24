@@ -44,7 +44,7 @@ intensity <- function(vecteur) {
     stop("Input must be a numeric vector.")
   }
   # Calculate intensity
-  int <- mean(vecteur, na.rm=T)
+  int <- mean(vecteur, na.rm = T)
   return(int)
 }
 # TO DO check that values in vecteur are between 0 and 100 ?
@@ -69,13 +69,14 @@ severity_diseased <- function(vecteur) {
     stop("Input must be a numeric vector.")
   }
   # Calculate intensity
-  if (length(vecteur[vecteur > 0])>0) {
-  sev <- mean(vecteur[vecteur > 0], na.rm=T)
-              } else {sev <- 0}
+  if (length(vecteur[vecteur > 0]) > 0) {
+    sev <- mean(vecteur[vecteur > 0], na.rm = T)
+  } else {
+    sev <- 0
+  }
   return(sev)
 }
 # TO DO check that values in vecteur are between 0 and 100 ?
-
 
 #' calcul efficacy
 #' @description
@@ -87,13 +88,11 @@ severity_diseased <- function(vecteur) {
 #' @param value numeric value
 #' @param value_tnt numeric value of TNT
 #'
-#' @returns
+#' @returns a vector of calculated efficacy
 #'
-#' @examples
 #' @export
-efficacy <- function(value,value_tnt)
-{
-  eff <- 100-((value*100/value_tnt))
-  if(eff<0) {eff <- 0} ## to avoid negative value
+efficacy <- function(value, value_tnt) {
+  eff <- 100 - ((value * 100 / value_tnt))
+  eff[eff < 0] <- 0 ## to avoid negative value
   return(eff)
 }

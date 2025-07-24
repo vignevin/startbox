@@ -5,6 +5,8 @@
 usethis::use_build_ignore("dev_history.R")
 usethis::use_build_ignore("misc")
 usethis::use_build_ignore("")
+usethis::use_build_ignore("doc")
+usethis::use_build_ignore("logo_startbox.png")
 
 # 1.c. Renseigner les méta-données du package
 # Titre du package
@@ -52,11 +54,19 @@ desc::desc_set(Language = "fr")
 usethis::use_testthat()
 
 ### documentation
+devtools::document()
+
+## logo
+usethis::use_logo("logo_startbox.png")
+
 ## creer readMe
 usethis::use_readme_rmd()
 
 ## creer une vignette
-usethis::use_vignette("startbox.qmd")
+usethis::use_vignette("quickstart.qmd")
+
+# update version if necessary
+usethis::use_version()
 
 ## creer site
 usethis::use_pkgdown()
@@ -75,9 +85,5 @@ usethis::use_package("dplyr", min_version = "1.1.4")
 usethis::use_package("agricolae", min_version = "1.3-7")
 usethis::use_package("rlang")
 
-
-
-devtools::document()
-devtools::build_rmd("vignettes/startbox.qmd")
+# !!! supprimer rep Rcheck avant
 devtools::check()
-devtools::build_vignettes()

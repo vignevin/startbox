@@ -1,0 +1,147 @@
+---
+title: "quickstart"
+format:
+  html:
+    code-copy: true
+    code-overflow: wrap
+vignette: >
+  %\VignetteIndexEntry{startbox}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+# Introduction
+
+Le package {startbox} est dédié à la gestion et à l'analyse des données d'essais en protection phytosanitaire, en particulier pour la vigne.
+
+## Principe de base
+
+Les données sont stockées dans un fichier Excel standard, dont il est possible de télécharger un modèle avec la fonction `get_template_excel()`.
+
+Une analyse se déroule selon les étapes suivantes :
+
+1.  Charger les données dans R
+2.  Préparer les données
+3.  Réaliser les analyses statistiques
+4.  Visualiser les graphiques de résultats
+
+## Installation du package
+
+```{r echo = TRUE,  eval=FALSE}
+#install.packages("devtools")  # if not already installed
+
+devtools::install_github("vignevin/startbox")
+```
+
+# Charger les données
+
+```{r}
+#| label: setup
+library(startbox)
+```
+
+## Chargement des données dans l'environnement de travail
+
+Les données sont chargées dans R dans un objet appartenant à la classe user_data, spécifique au package startbox. Cet objet contient les données brutes, mais aussi sert à stocker les données préparées et les résultats des analyses statistiques.
+
+```{r}
+# Création d'un objet avec fichier Excel existant
+# ici le fichier Excel est un fichier exemple fourni avec le package
+mydata <- user_data$new(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
+```
+
+Pour adapter ce code à votre cas, modifier le paramètre `trial_file` avec le chemin de votre fichier Excel. Une fonction pratique est d'utiliser `trial_file = file.choose()` pour une sélection interactive du fichier.
+
+::: callout-important
+Un fichier Excel *ouvert* ne peut pas être chargé ni modifié par {startbox} : n'oubliez-pas de fermer votre fichier avant de lancer la fonction `user_data$new()`.
+:::
+
+## Accéder aux données chargées
+
+Les données sont dans notre exemple stockées dans l'objet que nous avons appelé `mydata`.
+
+Cet objet contient nos données, avec en particulier :
+
+-   les données d'observations dans `obs_data`
+
+-   les métadonnées, issues des feuilles Excel placette et modalité dans `metadata`
+
+```{r}
+# affichage des premières lignes des données d'observation data_F1_2024 :
+head(mydata$obs_data$data_G1)
+```
+
+# Préparer les données
+
+Une fois les données chargées, il est nécessaire de les préparer avant analyse. Généralement, pour un essai en protection phytosanitaire, la fréquence et l'intensité de la maladie sont calculées par placette. La fonction `prepare_data()` réalise ce calcul par défaut, mais vous pouvez aussi le personnaliser (voir l'aide de la fonction).
+
+## Préparer les données à partir d'un jeu de données observation
+
+```{r}
+prepare_data(mydata, df="data_G1")
+# df : le nom du dataframe à préparer)
+ 
+```
+
+## Préparer les données à partir d'un jeu de données préparées
+
+Ce cas de figure intervient généralement quand on souhaite calculer une efficacité. En effet, il faut d'abord calculer la fréquence et l'intensité par placette, puis calculer l'efficacité à partir de ces données.
+
+```{r}
+prepare_data(mydata,
+             df="prp1_data_G1", # le nom du dataframe à préparer 
+             funs = list(efficacité = efficacy),  # calcul de l'efficacité
+             tnt_mode = "block")
+```
+
+## Accéder aux données préparées
+
+Les données préparées sont accessibles dans `mydata`, sous forme d'une liste `prepared_data`
+
+```{r}
+head(mydata$prepared_data$prp2_prp1_data_G1)
+```
+
+# Analyser les données
+
+Une fois le jeu de données préparé, il est possible de réaliser l'analyse statistique.
+
+## Réaliser l'analyse
+
+```{r}
+test_stats(mydata, prep_data = "prp2_prp1_data_G1")
+
+```
+
+## Afficher les résultats
+
+Les résultats des analyses statistiques sont stockées dans `mydata`, dans une liste `stats`. Pour chaque exécution de `test_stats()`, un nouvel élément est ajouté à la liste. Chaque élément contient :
+
+-   prep_data : le nom du jeu de données préparées qui a été analysé
+
+-   df.stats : une table avec les tests réalisées et les p-values calculées pour chaque variable
+
+-   df.grp_means : une table avec les moyennes par modalités et les groupes statistiques
+
+```{r}
+head(mydata$stats$prp2_prp1_data_G1$df.grp_means)
+```
+
+# Afficher les graphiques
+
+## Barplot
+
+```{r}
+plot_xpbar(mydata,stat = "prp2_prp1_data_G1")
+
+```
+
+## Heat map
+
+```{r}
+plot_xpheat(mydata,stat = "prp2_prp1_data_G1")
+```

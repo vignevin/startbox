@@ -1,3 +1,5 @@
+## functions for in and out data
+
 #' @title Save Combined Data to a Versioned Excel File
 #'
 #' @description
@@ -16,7 +18,7 @@
 #' - The function returns the path of the versioned file, which includes `_v1`, `_v2`, etc., to ensure uniqueness.
 #'
 #' @export
-save_data_to_excel<- function(combined_data, excel_data_trial_path) {
+save_data_to_excel <- function(combined_data, excel_data_trial_path) {
   # Extraire le chemin, nom et extension
   dir <- dirname(excel_data_trial_path)
   base <- tools::file_path_sans_ext(basename(excel_data_trial_path))
@@ -31,7 +33,11 @@ save_data_to_excel<- function(combined_data, excel_data_trial_path) {
   }
 
   # Copier le fichier original
-  success <- file.copy(from = excel_data_trial_path, to = new_file, overwrite = FALSE)
+  success <- file.copy(
+    from = excel_data_trial_path,
+    to = new_file,
+    overwrite = FALSE
+  )
   if (!success) stop("❌ Unable to create versioned copy of Excel file.")
 
   # Charger le fichier copié
@@ -79,18 +85,25 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
 
     # Définir le nom de fichier
     if (is.null(filename)) {
-      filename <- paste0(tools::file_path_sans_ext(basename(self$excel_model)), "_copie.xlsx")
+      filename <- paste0(
+        tools::file_path_sans_ext(basename(self$excel_model)),
+        "_copie.xlsx"
+      )
     }
 
     # Définir le chemin complet
     if (is.null(directory)) {
-      directory <- getwd()  # répertoire courant
+      directory <- getwd() # répertoire courant
     }
 
     full_path <- file.path(directory, filename)
 
     # Copier le modèle
-    success <- file.copy(from = self$excel_model, to = full_path, overwrite = TRUE)
+    success <- file.copy(
+      from = self$excel_model,
+      to = full_path,
+      overwrite = TRUE
+    )
 
     if (success) {
       self$excel_data_trial <- full_path
@@ -124,7 +137,10 @@ load_metadata_sheets <- function(self) {
   # Read and store 'placette' sheet
   if ("placette" %in% wb_trial$sheet_names) {
     placette_data <- openxlsx2::wb_read(wb_trial, sheet = "placette")
-    placette_data <- placette_data[rowSums(is.na(placette_data) | placette_data == "") != ncol(placette_data), ]
+    placette_data <- placette_data[
+      rowSums(is.na(placette_data) | placette_data == "") !=
+        ncol(placette_data),
+    ]
 
     if (nrow(placette_data) > 0) {
       self$add_metadata("plot_desc", placette_data)
@@ -139,7 +155,19 @@ load_metadata_sheets <- function(self) {
   # Read and store 'modalite' sheet
   if ("modalite" %in% wb_trial$sheet_names) {
     modalite_data <- openxlsx2::wb_read(wb_trial, sheet = "modalite")
-    modalite_data <- modalite_data[rowSums(is.na(modalite_data) | modalite_data == "") != ncol(modalite_data), ]
+
+    ## clean NA rows
+    modalite_data_clean <- modalite_data %>%
+      dplyr::filter(!dplyr::if_all(dplyr::everything(), is.na))
+    if (nrow(modalite_data_clean) < nrow(modalite_data)) {
+      message(paste(
+        nrow(modalite_data) - nrow(modalite_data_clean),
+        "empty rows deleted "
+      ))
+    }
+
+    ## convert data types
+    modalite_data <- startbox::harmonize_column_types(modalite_data_clean)
 
     if (nrow(modalite_data) > 0) {
       self$add_metadata("moda_desc", modalite_data)
@@ -157,24 +185,21 @@ load_metadata_sheets <- function(self) {
 #'
 #' @param destination_path the file path where the template will be saved
 #'
-#' @returns
+#' @returns none, the template.xlsx file is saved on user's disk
 #' @export
 #'
-#' @examples
-get_template_excel <- function(destination_path=NULL) {
+get_template_excel <- function(destination_path = NULL) {
   # Construct the path to the file in the package
-  file_path <- system.file("extdata","template.xlsx",package="startbox")
+  file_path <- system.file("extdata", "template.xlsx", package = "startbox")
 
   # Check if the file exists
   if (file.exists(file_path)) {
-    if (!is.null(destination_path))
-    {
-    # Copy the file to the destination path specified by the user
-    file.copy(file_path, destination_path)
-    # Return a success message
-    message("The file has been successfully saved to the specified location.")
-    }
-    else {
+    if (!is.null(destination_path)) {
+      # Copy the file to the destination path specified by the user
+      file.copy(file_path, destination_path)
+      # Return a success message
+      message("The file has been successfully saved to the specified location.")
+    } else {
       # Construct the path to the user's Downloads directory
       download_path <- file.path(path.expand("~"), "modele_standard.xlsx")
 
@@ -186,7 +211,9 @@ get_template_excel <- function(destination_path=NULL) {
     }
   } else {
     # Return an error message if the file does not exist
-    stop("The specified file does not exist in the inst/extdata directory of the package.")
+    stop(
+      "The specified file does not exist in the inst/extdata directory of the package."
+    )
   }
 }
 
@@ -203,7 +230,6 @@ get_template_excel <- function(destination_path=NULL) {
 #'
 #' @export
 load_data_sheets <- function(self) {
-
   filepath <- self$excel_data_trial
 
   if (is.null(filepath) || !file.exists(filepath)) {
@@ -220,17 +246,30 @@ load_data_sheets <- function(self) {
   }
 
   for (sheet in data_sheets) {
-    df <- tryCatch({
-      openxlsx2::wb_to_df(wb, sheet = sheet)
-    }, error = function(e) {
-      warning(paste("⚠️ Could not read sheet:", sheet))
-      return(NULL)
-    })
+    df <- tryCatch(
+      {
+        openxlsx2::wb_to_df(wb, sheet = sheet)
+      },
+      error = function(e) {
+        warning(paste("⚠️ Could not read sheet:", sheet))
+        return(NULL)
+      }
+    )
 
     if (is.null(df)) next
 
     # Nettoyage du nom : on supprime les caractères interdits (par sécurité)
     safe_sheet <- gsub("[:\\\\/*?\\[\\]]", "_", sheet)
+
+    ## clean NA rows
+    df_clean <- df %>%
+      dplyr::filter(!dplyr::if_all(dplyr::everything(), is.na))
+    if (nrow(df_clean) < nrow(df)) {
+      message(paste(nrow(df) - nrow(df_clean), "empty rows deleted in", sheet))
+    }
+
+    ## convert data types
+    df_clean <- startbox::harmonize_column_types(df_clean)
 
     # Ajoute une mention si la feuille existait déjà
     if (safe_sheet %in% names(self$obs_data)) {
@@ -240,17 +279,14 @@ load_data_sheets <- function(self) {
       self$log_trace(
         operation = "update_data",
         filename = paste0(filename_base, ":", safe_sheet),
-        description = "Updated sheet")
+        description = "Updated sheet"
+      )
     } else {
       message("✅ New sheet loaded: ", safe_sheet)
     }
 
-    self$obs_data[[safe_sheet]] <- df
-
-
+    self$obs_data[[safe_sheet]] <- df_clean
   }
-
-  invisible(self$obs_data)
 }
 
 #' @title Export observation sheets into a new Excel file version
@@ -269,7 +305,7 @@ load_data_sheets <- function(self) {
 
 export_data_sheets <- function(self) {
   wb <- openxlsx2::wb_load(self$excel_data_trial)
-
+  added_sheets <- vector()
   for (i in seq_along(self$obs_data)) {
     original_name <- names(self$obs_data)[i]
     df <- self$obs_data[[i]]
@@ -281,13 +317,16 @@ export_data_sheets <- function(self) {
     }
 
     if (sheetname %in% wb$sheet_names) {
-      openxlsx2::wb_remove_worksheet(wb, sheet = sheetname)
-      message("🔁 Sheet replaced: ", sheetname)
+      # the sheet is already in the Excel file : no change
+      next
+      #openxlsx2::wb_remove_worksheet(wb, sheet = sheetname)
+      #message("🔁 Sheet replaced: ", sheetname)
+    } else {
+      wb$add_worksheet(sheetname)
+      wb$add_data_table(sheet = sheetname, x = df)
+      message("✅ Sheet added: ", sheetname)
+      added_sheets <- c(added_sheets, sheetname)
     }
-
-    wb$add_worksheet(sheetname)
-    wb$add_data_table(sheet = sheetname, x = df)
-    message("✅ Sheet added: ", sheetname)
   }
 
   timestamp <- format(Sys.time(), "%Y-%m-%d_%Hh%M")
@@ -298,7 +337,13 @@ export_data_sheets <- function(self) {
   ext <- tools::file_ext(base_file)
   output_dir <- file.path(Sys.getenv("USERPROFILE"), "Downloads")
 
-  new_filename <- file.path(output_dir, paste0(name_no_ext, "_", timestamp, ".", ext))
+  new_filename <- file.path(
+    output_dir,
+    paste0(name_no_ext, "_", timestamp, ".", ext)
+  )
+
+  wb$set_sheet_visibility(sheet = "uri_list" ,value ="veryHidden") ## hide sheet listes
+  wb$set_sheet_visibility(sheet = "listes" ,value ="veryHidden") ## hide sheet listes
 
   wb$save(file = new_filename)
   message("✅ New Excel file saved at: ", new_filename)
@@ -308,16 +353,15 @@ export_data_sheets <- function(self) {
 
   # Ajout dans traceability
   filename_base <- basename(new_filename)
-  added_sheets <- names(self$obs_data)
-
-  for (sheet in added_sheets) {
-    self$log_trace(
-      operation = "export",
-      filename = paste0(filename_base, ":", sheet),
-      description = "Sheet exported"
-    )
+  if (length(added_sheets > 0)) {
+    for (sheet in added_sheets) {
+      self$log_trace(
+        operation = "export",
+        filename = paste0(filename_base, ":", sheet),
+        description = "Sheet exported"
+      )
+    }
   }
-
   # Mise à jour de la feuille "log" dans le fichier exporté
   write_log(self)
 
@@ -375,17 +419,13 @@ write_log <- function(self) {
     wb$remove_worksheet(sheet = "log")
     wb$add_worksheet(sheet = "log")
     wb$add_data(sheet = "log", x = updated_log, withFilter = FALSE)
-
   } else {
     message("🆕 Creating new sheet 'log'.")
     wb$add_worksheet(sheet = "log")
     wb$add_data(sheet = "log", x = self$traceability, withFilter = FALSE)
   }
-
+  wb$set_sheet_visibility(sheet = "uri_list" ,value ="veryHidden") ## hide sheet listes
+  wb$set_sheet_visibility(sheet = "listes" ,value ="veryHidden") ## hide sheet listes
   wb$save(file = filepath)
   message("✅ Log written to 'log' sheet in ", basename(filepath))
 }
-
-
-
-

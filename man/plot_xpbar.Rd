@@ -5,28 +5,35 @@
 \title{Barplot summary for an experiment}
 \usage{
 plot_xpbar(
-  data2plot,
-  xcol = "xp_trt_code",
-  ycol = "value",
-  fillcol = NULL,
-  scale = NULL,
+  self,
+  stats = NULL,
+  calculation_choices = NULL,
+  one_plot = TRUE,
+  text_stat = TRUE,
+  max_y = NULL,
   bar_color = NULL,
   bar_width = 0.7,
-  border_tnt = TRUE,
+  border_tnt = FALSE,
+  show_tnt = TRUE,
+  code_tnt = "TNT",
   show_errorbar = TRUE,
+  show_data = TRUE,
+  short_names = TRUE,
   ...
 )
 }
 \arguments{
-\item{data2plot}{a dataframe, the first col is used for x axis, col value for y axis and col type for fill.}
+\item{self}{An instance of the \code{UserData} R6 class}
 
-\item{xcol}{col to be used as factor for x avis}
+\item{stats}{character, the name of a stats list inside self$stats.}
 
-\item{ycol}{col to be used for y axis}
+\item{calculation_choices}{vector of character, choice(s) of calculation to plot. For example c("FA UN_BER_PC","IA UN_BER_PC")}
 
-\item{fillcol}{col to be used for fill}
+\item{one_plot}{boolean. If TRUE, all calculations are plot on an unique plot using fill argument, else each calculation is on a independent plot using factet}
 
-\item{scale}{Upper limit of the y axis. If NULL, automatic adjustment.}
+\item{text_stat}{boolean. If TRUE, an annotation is added to the plot with the test done and its p-value}
+
+\item{max_y}{Upper limit of the y axis. If NULL, automatic adjustment.}
 
 \item{bar_color}{Bar fill colour.}
 
@@ -34,7 +41,15 @@ plot_xpbar(
 
 \item{border_tnt}{if true, the border color is set as red for TNT}
 
+\item{show_tnt}{if false, TNT are removed from the graph}
+
+\item{code_tnt}{a string to identify in TNT in the row of the dataframe by default "TNT"}
+
 \item{show_errorbar}{display of error bars}
+
+\item{show_data}{display data points}
+
+\item{short_names}{to have shorter names for fill removing the last part of the string after the last space occurence}
 
 \item{...}{other parameters for labs (title, x, y,fill)}
 }
