@@ -6,40 +6,53 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of startbox is to manage and visualize experimental data in
-plant protection trials.
+Le package startbox est dédié à la gestion et à l’analyse des données
+d’essais en protection phytosanitaire, en particulier pour la vigne. Les
+données sont stockées dans un fichier Excel standard.
 
-This R package was developped as part of the STAR project 2024-2027
-(France), with the support of the French Ministry of Agriculture and
-Food, and the financial contribution of the special allocation account
-for agricultural and rural development (CASDAR). The responsability of
-the French Ministry of Agriculture and Food cannot be engaged.
+Le package startbox regroupe des fonctions utiles pour le traitement des
+données selon les étapes suivantes :
+
+1.  Chargement des données dans R
+
+2.  Préparation des données (agrégation, filtre…)
+
+3.  Réalisation des analyses statistiques
+
+4.  Visualisation graphique des résultats (barplot, heatmap)
 
 ## Installation
 
-You can install the development version of startbox from
-[GitHub](https://github.com/) with:
+Startbox est uniquement disponible depuis [GitHub](https://github.com/)
+avec :
 
 ``` r
 #install.packages("devtools")  # if not already installed
 devtools::install_github("vignevin/startbox")
 ```
 
-If you also want to install the vignette (which serves as a tutorial for
-the package), run this after installation:
+## Help
 
-``` r
-devtools::install(build_vignettes = TRUE)
-```
+L’aide est disponible en ligne sur le site
+[startbox](https://vignevin.github.io/startbox/index.html).
 
-Once installed, you can access the vignette with:
+## Citation
 
-``` r
-vignette("quickstart","startbox")
-#> démarrage du serveur d'aide httpd ... fini
-```
+Pour citer le package startbox dans une publication, utilisez
+`citation("startbox")`.
 
 ## Contribution
 
-You can contribute to this projetc project by creating a pull request,
-or use issues to track bugs or suggest ideas in a repository.
+Pour toute déclaration de bug ou de proposition d’amélioration merci
+d’[ouvrir un ticket](https://github.com/vignevin/startbox/issues) sur
+GitHub.
+
+## Financement
+
+Ce package R a été développé dans le cadre du projet STAR 2024-2027
+(France), avec le soutien du ministère de l’Agriculture et de
+l’Alimentation et la contribution financière du Compte d’affectation
+spéciale pour le développement agricole et rural (CASDAR).
+
+*La responsabilité du ministère de l’Agriculture et de l’Alimentation ne
+peut être engagée.*
