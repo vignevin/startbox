@@ -39,6 +39,9 @@ user_data <- R6::R6Class(
     #' @field traceability A data.frame storing a log of all operations performed on the data (import, export, update, etc.).
     traceability = NULL,
 
+    #' @field dictionary A data.frame storing the data dictionary.
+    dictionary = NULL,
+
     #' @description
     #' Initializes a new `user_data` object. If no Excel file is provided, a default template is used.
     #'
@@ -49,32 +52,38 @@ user_data <- R6::R6Class(
     initialize = function(trial_file = NULL, name = NULL) {
       # If no file is provided, use the default template
       if (is.null(trial_file)) {
-        self$excel_data_trial <- system.file(
+        trial_file <- system.file(
           "extdata",
           "template.xlsx",
           package = "startbox"
         )
         message("📄 No file provided. Using default template.")
       } else {
-        self$excel_data_trial <- trial_file
         message("📄 Using provided Excel file: ", basename(trial_file))
+      }
+      if (check_standard_file(trial_file)) {
+        # check if file is a standard file
+        self$excel_data_trial <- trial_file
+
         if (is.null(name)) {
           self$name <- sub("\\..*", "", basename(trial_file))
         } else {
           self$name <- name
         }
-        load_data_sheets(self)
         load_metadata_sheets(self)
-      }
+        load_data_sheets(self)
 
-      self$traceability <- data.frame(
-        datetime = character(),
-        operation = character(),
-        filename = character(),
-        description = character(),
-        package_version = character(),
-        stringsAsFactors = FALSE
-      )
+        self$traceability <- data.frame(
+          datetime = character(),
+          operation = character(),
+          filename = character(),
+          description = character(),
+          package_version = character(),
+          stringsAsFactors = FALSE
+        )
+      } else {
+        invisible()
+      }
     },
 
     #' @description

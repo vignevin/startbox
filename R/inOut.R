@@ -24,7 +24,7 @@ save_data_to_excel <- function(combined_data, excel_data_trial_path) {
   base <- tools::file_path_sans_ext(basename(excel_data_trial_path))
   ext <- tools::file_ext(excel_data_trial_path)
 
-  # Générer un nom de fichier versionné
+  # generation of versioned name
   i <- 1
   repeat {
     new_file <- file.path(dir, paste0(base, "_v", i, ".", ext))
@@ -32,7 +32,7 @@ save_data_to_excel <- function(combined_data, excel_data_trial_path) {
     i <- i + 1
   }
 
-  # Copier le fichier original
+  # copy of the original file
   success <- file.copy(
     from = excel_data_trial_path,
     to = new_file,
@@ -40,20 +40,20 @@ save_data_to_excel <- function(combined_data, excel_data_trial_path) {
   )
   if (!success) stop("❌ Unable to create versioned copy of Excel file.")
 
-  # Charger le fichier copié
+  # load the workbook
   wb <- openxlsx2::wb_load(new_file)
 
-  # Supprimer l'ancienne feuille "data" si elle existe
+  # remove old sheet "data" if exists
   if ("data" %in% wb$sheet_names) {
     wb$remove_worksheet("data")
   }
 
-  # Ajouter les nouvelles données dans une feuille "data"
+  # add new data to the sheet "data"
   wb$add_worksheet("data")
   wb$add_data_table(sheet = "data", x = combined_data)
   wb$set_active_sheet("data")
 
-  # Sauvegarder le fichier copié avec les nouvelles données
+  # save the copy fil with new datas
   wb$save(new_file)
 
   message(paste0("✅ Versioned Excel file saved as: ", new_file))
@@ -79,11 +79,11 @@ save_data_to_excel <- function(combined_data, excel_data_trial_path) {
 #'
 #' @export
 prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
-  # Si le fichier trial n’existe pas ou est invalide
+  # if is null excel_data_trial
   if (is.null(self$excel_data_trial) || !file.exists(self$excel_data_trial)) {
     message("📁 Creating the trial Excel file from the blank template...")
 
-    # Définir le nom de fichier
+    # set filename
     if (is.null(filename)) {
       filename <- paste0(
         tools::file_path_sans_ext(basename(self$excel_model)),
@@ -91,14 +91,14 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
       )
     }
 
-    # Définir le chemin complet
+    # set filepath
     if (is.null(directory)) {
-      directory <- getwd() # répertoire courant
+      directory <- getwd() #  folder in use
     }
 
     full_path <- file.path(directory, filename)
 
-    # Copier le modèle
+    # template copy
     success <- file.copy(
       from = self$excel_model,
       to = full_path,
@@ -107,11 +107,55 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
 
     if (success) {
       self$excel_data_trial <- full_path
-      message(paste("✅ Trial Excel created at:", full_path))
+      message(paste("Trial Excel created at:", full_path))
     } else {
-      stop("❌ Failed to create the trial Excel file.")
+      stop("Failed to create the trial Excel file.")
     }
   }
+}
+
+#' Load data from an standardized Excel file into R environment
+#'
+#' @param trial_file path to data excel model
+#' @param name a name of the experiment to be stored
+#'
+#' @returns load data into a new user_data object in the R environment
+#' @export
+#'
+#' @examples
+#' mydata <- load_excel_file()
+load_excel_file <- function(trial_file = NULL, name = NULL) {
+  user_data$new(trial_file = trial_file, name = name)
+}
+
+
+#' Check if the file provided is a xlsx standardised file
+#'
+#' @param trial_file a file path
+#'
+#' @returns TRUE or FALSE
+#' @export
+#'
+#' @examples
+#' check_standard_file(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
+check_standard_file <- function(trial_file = NULL) {
+  if (!file.exists(trial_file)) {
+    message("No file found")
+    return(FALSE)
+  }
+  pos <- regexpr("\\.([[:alnum:]]+)$", trial_file)
+  ext <- ifelse(pos > -1L, substring(trial_file, pos + 1L), "")
+  if (ext != "xlsx") {
+    message("This is not an xlsx file")
+    return(FALSE)
+  }
+  wb_trial <- openxlsx2::wb_load(trial_file)
+  metadata <- openxlsx2::wb_get_properties(wb_trial)
+  if (!grepl("STAR", metadata[1])) {
+    message("Warning, this Excel file seems not to be a standard file")
+    return(FALSE)
+  }
+  return(TRUE)
 }
 
 #' @title Load Metadata Sheets from Excel Trial File
@@ -134,40 +178,94 @@ prepare_excel_model <- function(self, directory = NULL, filename = NULL) {
 load_metadata_sheets <- function(self) {
   wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
 
+  # Read and store 'dico' sheet
+  if ("dictionary" %in% wb_trial$sheet_names) {
+    dictionary <- openxlsx2::wb_to_df(
+      wb_trial,
+      sheet = "dictionary",
+      skip_empty_rows = TRUE
+    )
+
+    # removing cols without names (NA or "")
+    dictionary <- dictionary[, dplyr::coalesce(colnames(dictionary), "") != ""]
+
+    if (nrow(dictionary) > 0) {
+      self$dictionary <- dictionary
+      message("✅ Sheet 'dictionary loaded ")
+    } else {
+      message("⚠️ Sheet 'dictionary ' empty. Default dictionary used")
+      load_default_dictionary(self)
+    }
+  } else {
+    message("ℹ️ Sheet 'dictionary' not found.")
+    load_default_dictionary(self)
+  }
+
   # Read and store 'placette' sheet
   if ("placette" %in% wb_trial$sheet_names) {
-    placette_data <- openxlsx2::wb_read(wb_trial, sheet = "placette")
-    placette_data <- placette_data[
-      rowSums(is.na(placette_data) | placette_data == "") !=
-        ncol(placette_data),
+    placette_data <- openxlsx2::wb_to_df(
+      wb_trial,
+      sheet = "placette",
+      skip_empty_rows = TRUE
+    )
+
+    # removing cols without names (NA or "")
+    placette_data <- placette_data[,
+      dplyr::coalesce(colnames(placette_data), "") != ""
     ]
 
     if (nrow(placette_data) > 0) {
       self$add_metadata("plot_desc", placette_data)
       message("✅ Sheet 'placette' loaded into metadata$placette.")
     } else {
-      message("⚠️ Sheet 'placette' is empty.")
+      warning("⚠️ Sheet 'placette' is empty.")
     }
   } else {
-    message("ℹ️ Sheet 'placette' not found.")
+    warning("ℹ️ Sheet 'placette' not found.")
   }
 
   # Read and store 'modalite' sheet
   if ("modalite" %in% wb_trial$sheet_names) {
-    modalite_data <- openxlsx2::wb_read(wb_trial, sheet = "modalite")
+    modalite_data <- openxlsx2::wb_to_df(
+      wb_trial,
+      sheet = "modalite",
+      skip_empty_rows = TRUE
+    )
 
-    ## clean NA rows
-    modalite_data_clean <- modalite_data %>%
-      dplyr::filter(!dplyr::if_all(dplyr::everything(), is.na))
-    if (nrow(modalite_data_clean) < nrow(modalite_data)) {
-      message(paste(
-        nrow(modalite_data) - nrow(modalite_data_clean),
-        "empty rows deleted "
-      ))
+    # removing cols without names (NA or "")
+    moda_colnames <- colnames(modalite_data)
+    modalite_data <- modalite_data[, dplyr::coalesce(moda_colnames, "") != ""]
+
+    if ("xp_trt_name" %in% moda_colnames) {
+      if (!"xp_trt_code" %in% moda_colnames) {
+        warning(
+          "⚠️ Sheet 'modalite' contains no col xp_trt_code. Please check your data file !"
+        )
+      } else {
+        ## to fill xp_trt_name if missing (needed for later)
+        if (
+          sum(
+            is.na(modalite_data$xp_trt_name) | modalite_data$xp_trt_name == ""
+          ) >
+            0
+        ) {
+          message(
+            "⚠️ some xp_trt_name are missing. xp_trt_code used instead. Please check your data file"
+          )
+        }
+        modalite_data$xp_trt_name <- ifelse(
+          is.na(modalite_data$xp_trt_name) | modalite_data$xp_trt_name == "",
+          modalite_data$xp_trt_code, # if exists keep
+          modalite_data$xp_trt_name # else use xp_trt_code as xp_trt_name
+        )
+      }
     }
 
     ## convert data types
-    modalite_data <- startbox::harmonize_column_types(modalite_data_clean)
+    modalite_data <- startbox::harmonize_column_types(
+      modalite_data,
+      dictionary = self$dictionary
+    )
 
     if (nrow(modalite_data) > 0) {
       self$add_metadata("moda_desc", modalite_data)
@@ -179,7 +277,6 @@ load_metadata_sheets <- function(self) {
     message("ℹ️ Sheet 'modalite' not found.")
   }
 }
-
 # Function to get and save the template Excel file
 #' get_template_excel
 #'
@@ -248,7 +345,7 @@ load_data_sheets <- function(self) {
   for (sheet in data_sheets) {
     df <- tryCatch(
       {
-        openxlsx2::wb_to_df(wb, sheet = sheet)
+        openxlsx2::wb_to_df(wb, sheet = sheet, skip_empty_rows = TRUE)
       },
       error = function(e) {
         warning(paste("⚠️ Could not read sheet:", sheet))
@@ -258,34 +355,35 @@ load_data_sheets <- function(self) {
 
     if (is.null(df)) next
 
-    # Nettoyage du nom : on supprime les caractères interdits (par sécurité)
+    # cleaning sheet names
     safe_sheet <- gsub("[:\\\\/*?\\[\\]]", "_", sheet)
 
-    ## clean NA rows
-    df_clean <- df %>%
-      dplyr::filter(!dplyr::if_all(dplyr::everything(), is.na))
-    if (nrow(df_clean) < nrow(df)) {
-      message(paste(nrow(df) - nrow(df_clean), "empty rows deleted in", sheet))
-    }
+    # removing cols without names (NA or "")
+    df_clean <- df[, dplyr::coalesce(colnames(df), "") != ""]
 
-    ## convert data types
-    df_clean <- startbox::harmonize_column_types(df_clean)
-
-    # Ajoute une mention si la feuille existait déjà
-    if (safe_sheet %in% names(self$obs_data)) {
-      message("🔁 Sheet already loaded: ", safe_sheet, " → replaced.")
-
-      filename_base <- basename(filepath)
-      self$log_trace(
-        operation = "update_data",
-        filename = paste0(filename_base, ":", safe_sheet),
-        description = "Updated sheet"
+    if (nrow(df_clean) > 0) {
+      ## convert data types
+      df_clean <- startbox::harmonize_column_types(
+        df_clean,
+        dictionary = self$dictionary
       )
-    } else {
-      message("✅ New sheet loaded: ", safe_sheet)
-    }
+      self$obs_data[[safe_sheet]] <- df_clean
+      # add message if sheet already exists
+      if (safe_sheet %in% names(self$obs_data)) {
+        message("🔁 Sheet already loaded: ", safe_sheet, " → replaced.")
 
-    self$obs_data[[safe_sheet]] <- df_clean
+        filename_base <- basename(filepath)
+        self$log_trace(
+          operation = "update_data",
+          filename = paste0(filename_base, ":", safe_sheet),
+          description = "Updated sheet"
+        )
+      } else {
+        message(paste("✅ Sheet", safe_sheet, "added into  obs_data"))
+      }
+    } else {
+      message("⚠️ Sheet ", safe_sheet, " is empty and not loaded")
+    }
   }
 }
 
@@ -342,13 +440,13 @@ export_data_sheets <- function(self) {
     paste0(name_no_ext, "_", timestamp, ".", ext)
   )
 
-  wb$set_sheet_visibility(sheet = "uri_list" ,value ="veryHidden") ## hide sheet listes
-  wb$set_sheet_visibility(sheet = "listes" ,value ="veryHidden") ## hide sheet listes
+  wb$set_sheet_visibility(sheet = "uri_list", value = "veryHidden") ## hide sheet listes
+  wb$set_sheet_visibility(sheet = "listes", value = "veryHidden") ## hide sheet listes
 
   wb$save(file = new_filename)
   message("✅ New Excel file saved at: ", new_filename)
 
-  # Met à jour le chemin du fichier Excel actif
+  # update file path
   self$excel_data_trial <- new_filename
 
   # Ajout dans traceability
@@ -362,7 +460,7 @@ export_data_sheets <- function(self) {
       )
     }
   }
-  # Mise à jour de la feuille "log" dans le fichier exporté
+  # update of log sheet
   write_log(self)
 
   invisible(new_filename)
@@ -424,8 +522,41 @@ write_log <- function(self) {
     wb$add_worksheet(sheet = "log")
     wb$add_data(sheet = "log", x = self$traceability, withFilter = FALSE)
   }
-  wb$set_sheet_visibility(sheet = "uri_list" ,value ="veryHidden") ## hide sheet listes
-  wb$set_sheet_visibility(sheet = "listes" ,value ="veryHidden") ## hide sheet listes
+  wb$set_sheet_visibility(sheet = "uri_list", value = "veryHidden") ## hide sheet listes
+  wb$set_sheet_visibility(sheet = "listes", value = "veryHidden") ## hide sheet listes
   wb$save(file = filepath)
   message("✅ Log written to 'log' sheet in ", basename(filepath))
+}
+
+#' load default dictionary
+#'
+#' @param self A `user_data` R6 object with a `traceability` data.frame and an `excel_data_trial` path.
+#'
+#' @returns no return value, user_data dictionary is updated
+#' @export
+#'
+load_default_dictionary <- function(self) {
+  dictionary_path = system.file(
+    "extdata",
+    "star_dictionary.csv",
+    package = "startbox"
+  )
+  if (!file.exists(dictionary_path)) {
+    stop("no default dictionay found")
+  }
+  if (!is.null(self$dictionary)) {
+    message(
+      "Warning : existing dictionary will be replace by default dictionary"
+    )
+  }
+
+  dictionary <- utils::read.csv2(dictionary_path, stringsAsFactors = FALSE)
+  # keep only lines where both name and Rclass are non-empty and non-NA.
+  dictionary <- dictionary[
+    !(is.na(dictionary$nom) |
+      dictionary$nom == "" |
+      is.na(dictionary$Rclass) |
+      dictionary$Rclass == ""),
+  ]
+  self$dictionary <- dictionary
 }

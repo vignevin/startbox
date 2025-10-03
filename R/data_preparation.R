@@ -6,30 +6,35 @@
 #' Harmonizes the types of columns in a dataframe according to a type mapping.
 #'
 #' @param df The dataframe to harmonize.
-#' @param types_map (optional) predefined type mapping (otherwise it will load from a CSV).
-#' @param dictionary_path (optional) path to the CSV dictionary file if types_map is not provided.
+#' @param dictionary (optional) a data.frame with a least 2 cols 'nom' and 'Rclass'
 #'
 #' @return A dataframe with harmonized column types.
 #' @export
 harmonize_column_types <- function(
   df,
-  types_map = NULL,
-  dictionary_path = system.file(
-    "extdata",
-    "star_dictionary.csv",
-    package = "startbox"
-  )
-) {
-  if (is.null(types_map)) {
+  dictionary = NULL
+ ) {
+  if (is.null(dictionary)) {
+    dictionary_path = system.file(
+      "extdata",
+      "star_dictionary.csv",
+      package = "startbox"
+    )
+    if(!file.exists(dictionary_path)) {stop("no dictionary found")}
     types_df <- utils::read.csv2(dictionary_path, stringsAsFactors = FALSE)
-    types_df <- types_df[
-      !(is.na(types_df$nom) |
+     } else {
+       types_df <- dictionary
+     }
+
+  types_df <- types_df[
+    !(is.na(types_df$nom) |
         types_df$nom == "" |
         is.na(types_df$Rclass) |
         types_df$Rclass == ""),
-    ]
-    types_map <- stats::setNames(as.list(types_df$Rclass), types_df$nom)
-  }
+  ]
+  if (nrow(types_df) == 0) {stop("empty dictionary or missing data")}
+  # type mapping
+  types_map <- stats::setNames(as.list(types_df$Rclass), types_df$nom)
 
   for (col in names(types_map)) {
     if (col %in% names(df)) {
@@ -74,7 +79,6 @@ harmonize_column_types <- function(
 
   return(df)
 }
-
 #' @title Merged a dataset with plot description
 #'
 #' @description
@@ -553,6 +557,14 @@ prepare_data <- function(
     return(NULL)
   }
 
+  ## check correspondance between plot_id to adjust flex if not provided
+  if(is.null(flex)) {
+    if(check_plotid_diff(self$metadata$plot_desc, data)) {
+      message("flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10")
+      flex <- TRUE} else {
+        flex <- FALSE}
+  }
+
   # check filters
   if (!is.null(filters)) {
     data2flt <- data
@@ -591,14 +603,6 @@ prepare_data <- function(
       message(paste(nrow(data2flt), " rows after filtering"))
       data <- data2flt
     }
-  }
-
-  ## check correspondance between plot_id to adjust flex if not provided
-  if(is.null(flex)) {
-    if(check_plotid_diff(self$metadata$plot_desc, data)) {
-      message("flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10")
-      flex <- TRUE} else {
-        flex <- FALSE}
   }
 
   # convert column argument to symbol
@@ -664,10 +668,15 @@ prepare_data <- function(
     var <- vars[[v]]
     # raw
     if (raw) {
-      data$calculation <- as.character(var)
-      data$nb = 1
+      # data$calculation <- as.character(var)
+      # data$nb = 1
+      var_name <- rlang::as_string(var)
       data %>%
         dplyr::rename(value = !!var) %>%
+        dplyr::mutate(
+          calculation = var_name,
+          nb = as.integer(!is.na(value))
+        ) %>%
         dplyr::select(c(!!!group_syms, calculation, value, nb)) -> data_resume
       if (nrow(data_resume) != nrow(data)) {
         stop("Error in raw extraction")
@@ -690,12 +699,17 @@ prepare_data <- function(
         if (nrow(data_tnt_filtered) == 0) {
           all_data <- merge_data_plotdesc(self, data, flex = flex) # to try to find code_tnt in metadata
           all_data <- merge_data_xpdesc(self, all_data) # to try to find code_tnt in metadata
+          if(!is.null(all_data)) {
           all_data %>%
             dplyr::filter(apply(
               .,
               1,
               function(row) any(grepl(code_tnt, row))
             )) -> data_tnt_filtered
+          } else {
+            message("sorry, code_tnt not found")
+            return(NULL)
+            }
         }
 
         ## calcul of tnt mean by group_tnt
@@ -764,7 +778,7 @@ prepare_data <- function(
           dplyr::reframe(
             mean_tnt = mean(mean_tnt),
             value = efficacy({{ var }}, value_tnt = mean_tnt),
-            nb = dplyr::n()
+            nb =  sum(!is.na({{ var }})) #dplyr::n()
           )
       } else {
         # end of efficacy case
@@ -772,16 +786,22 @@ prepare_data <- function(
           dplyr::group_by(!!!group_syms) %>%
           dplyr::summarise(
             value = funs[[i]]({{ var }}),
-            nb = dplyr::n(),
+            nb =  sum(!is.na({{ var }})), #dplyr::n(),
             .groups = "drop"
           )
       }
       ## to add calculation
-      default_name <- ifelse(
-        var != "value",
-        paste(names(funs)[i], var),
+      var_name <- rlang::as_string(var)
+      # default_name <- ifelse(
+      #   var != "value",
+      #   paste(names(funs)[i], var),
+      #   names(funs)[i]
+      # )
+      default_name <- if (var_name != "value") {
+        paste(names(funs)[i], var_name)
+      } else {
         names(funs)[i]
-      )
+      }
       resume %>%
         dplyr::mutate(
           calculation = if ("calculation" %in% colnames(.))

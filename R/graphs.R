@@ -41,9 +41,8 @@ plot_xpheat <- function(
   short_names = FALSE,
   ...
 ) {
-
   # local binding
-  calculation <- value <- Valeurs <- value_centered <- plot_id <- plot_x <- plot_y <-  NULL
+  calculation <- value <- Valeurs <- value_centered <- plot_id <- plot_x <- plot_y <- NULL
 
   # check if self is UserData
   if (!inherits(self, "UserData")) {
@@ -160,16 +159,25 @@ plot_xpheat <- function(
   if (resids) fill_col <- rlang::sym("Residuals")
 
   ## custom label
-  short_name_calc <- if (short_names)
-    gsub(" [^ ]*$", "", calculation_levels) else calculation_levels
+  short_name_calc <- calculation_levels
+  if (short_names) {
+    if (
+      length(unique(gsub(" [^ ]*$", "", calculation_levels))) ==
+        length(unique(calculation_levels))
+    ) {
+      short_name_calc <- gsub(" [^ ]*$", "", calculation_levels)
+    } else {
+    }
+  }
   names(short_name_calc) = calculation_levels
   #p <- p + ggplot2::labs(fill = short_name_var)
 
   # midpoint for scale
-  if(is.null(midpoint))
-  {
-    if(resids | length(calculation_levels)>1) {midpoint <- 0} else {
-      midpoint <- mean(data_agg$Valeurs, na.rm=T)
+  if (is.null(midpoint)) {
+    if (resids | length(calculation_levels) > 1) {
+      midpoint <- 0
+    } else {
+      midpoint <- mean(data_agg$Valeurs, na.rm = T)
     }
   }
 
@@ -258,9 +266,8 @@ plot_xpbar <- function(
   short_names = TRUE,
   ...
 ) {
-
   # local binding
-  calculation <- . <- factor_level <- text <-  NULL
+  calculation <- . <- factor_level <- text <- NULL
 
   # check if self is UserData
   if (!inherits(self, "UserData")) {
@@ -363,9 +370,15 @@ plot_xpbar <- function(
 
   # if short_names = T
   if (short_names) {
-    data2plot$calculation <- gsub(" [^ ]*$", "", data2plot$calculation)
-    data_points$calculation <- gsub(" [^ ]*$", "", data_points$calculation)
-    ann_text$calculation <- gsub(" [^ ]*$", "", ann_text$calculation)
+    if (
+      length(unique(data2plot$calculation)) ==
+        length(unique(gsub(" [^ ]*$", "", data2plot$calculation)))
+    ) {
+      data2plot$calculation <- gsub(" [^ ]*$", "", data2plot$calculation)
+      data_points$calculation <- gsub(" [^ ]*$", "", data_points$calculation)
+      ann_text$calculation <- gsub(" [^ ]*$", "", ann_text$calculation)
+    } else {
+    }
   }
 
   # Create the graph

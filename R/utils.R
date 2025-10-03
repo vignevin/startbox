@@ -164,11 +164,11 @@ check_xptrtcode_diff <- function(df_as_ref, df_to_test) {
 #' @export
 check_topvigne_csv <- function(filepath) {
   if (!file.exists(filepath)) {
-    stop("❌ Le fichier n'existe pas : ", filepath)
+    stop("Missing file", filepath)
   }
 
   if (tools::file_ext(filepath) != "csv") {
-    stop("❌ Le fichier doit être au format .csv.")
+    stop("File must be a csv file")
   }
 
   df <- utils::read.csv2(file = filepath, fileEncoding = "latin1")
@@ -178,7 +178,7 @@ check_topvigne_csv <- function(filepath) {
 
   if (length(colonnes_manquantes) > 0) {
     stop(
-      "❌ Le fichier ne semble pas être un fichier TopVigne valide. Colonnes manquantes : ",
+      "Not a Topvigne export file. Missing cols: ",
       paste(colonnes_manquantes, collapse = ", "),
       "."
     )
@@ -339,4 +339,64 @@ harmonize_plot_id_format <- function(pid) {
   # )
 
   return(pid_clean)
+}
+
+
+#' Names of data observations available in an user_data objetc
+#'
+#' @param self #' @param self an instance of the `UserData` R6 class
+#'
+#' @returns a vector of names of data_observations
+#' @export
+#'
+obsnames <- function(self) {
+  names(self$obs_data)
+}
+
+#' Names of data observations available in an user_data objetc
+#'
+#' @param self #' @param self an instance of the `UserData` R6 class
+#'
+#' @returns a vector of names of prepared data
+#' @export
+#'
+prpnames <- function(self) {
+  names(self$prepared_data)
+}
+
+
+#' Names of stats available in an user_data objetc
+#'
+#' @param self self an instance of the `UserData` R6 class
+#'
+#' @returns a vector of names of prepared data
+#' @export
+#'
+statsnames <- function(self) {
+  names(self$stats)
+}
+
+#' Extract dataframe from an user_data object by his name (looking in obs_data and prepared_data)
+#'
+#' @param self an instance of the `UserData` R6 class containing user data.
+#' @param dfname a name to found (character)
+#'
+#' @returns a dataframe if found, NULL if not
+#' @export
+#'
+getdataframe <- function(self = NULL,dfname = NULL) {
+  params <- list(self,dfname)
+  if(any(sapply(params, is.null))) {
+    message("missing parameter(s)")
+    return(NULL)
+    }
+  if(dfname %in% obsnames(self)) {
+    df <- self$obs_data[[dfname]]
+    return(df)
+  }
+  if(dfname %in% prpnames(self)) {
+    df <- self$prepared_data[[dfname]]
+    return(df)
+  }
+  message(dfname," not found nor in either obs_data or prepared_data")
 }
