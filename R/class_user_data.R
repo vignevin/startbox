@@ -41,6 +41,9 @@ user_data <- R6::R6Class(
 
     #' @field dictionary A data.frame storing the data dictionary.
     dictionary = NULL,
+    
+    #' @field weather A data.frame storing the data weather
+    weather = NULL,  # data.frame chargé depuis la feuille "meteo"
 
     #' @description
     #' Initializes a new `user_data` object. If no Excel file is provided, a default template is used.
@@ -72,6 +75,7 @@ user_data <- R6::R6Class(
         }
         load_metadata_sheets(self)
         load_data_sheets(self)
+        load_weather_sheet(self)
 
         self$traceability <- data.frame(
           datetime = character(),
