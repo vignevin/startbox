@@ -528,7 +528,7 @@ write_log <- function(self) {
   message("✅ Log written to 'log' sheet in ", basename(filepath))
 }
 
-#' load default dictionary
+#' @title load default dictionary
 #'
 #' @param self A `user_data` R6 object with a `traceability` data.frame and an `excel_data_trial` path.
 #'
@@ -559,4 +559,45 @@ load_default_dictionary <- function(self) {
       dictionary$Rclass == ""),
   ]
   self$dictionary <- dictionary
+}
+
+
+#' @title Load weather data from Excel sheet
+#'
+#' @description
+#' This function reads the `meteo` sheet from the Excel file associated with a `user_data` and stores it in the slot `self$weather`.  
+#' If the sheet is not found, `self$weather` is set to `NULL`.
+#'
+#' @param self A `user_data` R6 object containing the `trial_file` attribute,
+#'
+#' @return Invisibly returns the loaded data.frame stored in `self$weather`.
+#'
+#' @importFrom openxlsx2 wb_load wb_to_df
+#' @importFrom dplyr coalesce
+#' @export
+load_weather_sheet <- function(self) {
+  wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
+  
+  if ("meteo" %in% wb_trial$sheet_names) {
+    meteo <- openxlsx2::wb_to_df(
+      wb_trial,
+      sheet = "meteo",
+      skip_empty_rows = TRUE
+    )
+    
+    meteo <- meteo[, dplyr::coalesce(base::colnames(meteo), "") != ""]
+    
+    if (nrow(meteo) > 0) {
+      self$weather <- meteo
+      message("✅ Sheet 'meteo' loaded into self$weather")
+    } else {
+      warning("⚠️ Sheet 'meteo' is empty.")
+      self$weather <- bNULL
+    }
+  } else {
+    message("ℹ️ Sheet 'meteo' not found.")
+    self$weather <- NULL
+  }
+  
+  invisible(self$weather)
 }
