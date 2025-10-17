@@ -400,3 +400,76 @@ getdataframe <- function(self = NULL,dfname = NULL) {
   }
   message(dfname," not found nor in either obs_data or prepared_data")
 }
+
+#' @title Check if weather data are daily or hourly
+#'
+#' @description
+#' This function analyzes the `meteo_datetime` column from the `weather` slot
+#' of the `user_data` object and determines if the data are daily or hourly observations.  
+#' It is mainly used by [plot_meteo()] to ensure that daily data are plotted correctly.
+#'
+#' @param self A `user_data` R6 object containing a `weather` data.frame with a column named `meteo_datetime`.
+#'
+#'
+#' @return
+#' A logical value:
+#' `TRUE` — if the dataset represents daily weather data.  
+#' `FALSE` — if the dataset contains hourly (or sub-daily) timestamps.
+#'
+#' @importFrom base as.POSIXct as.Date format suppressWarnings
+#' 
+#' @export
+check_daily_meteo <- function(self) {
+  
+  if (is.null(self$weather) || nrow(self$weather) == 0) {
+    stop("[check_daily_meteo] self$weather est vide. Charge d'abord via load_weather_sheets().", call. = FALSE)
+  }
+  if (!("meteo_datetime" %in% names(self$weather))) {
+    stop("[check_daily_meteo] Colonne 'meteo_datetime' absente de self$weather.", call. = FALSE)
+  }
+  
+  x <- self$weather$meteo_datetime
+  
+  to_posix <- function(v) {
+    if (inherits(v, "POSIXct")) return(v)
+    if (inherits(v, "Date"))    return(as.POSIXct(v, tz = "UTC"))
+    fmts <- c(
+      "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
+      "%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M",
+      "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M",
+      "%d-%m-%Y %H:%M:%S", "%d-%m-%Y %H:%M",
+      "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"
+    )
+    parsed <- rep(NA_real_, length(v))
+    parsed <- as.POSIXct(parsed, origin = "1970-01-01", tz = "UTC") 
+    for (f in fmts) {
+      tmp <- suppressWarnings(as.POSIXct(v, format = f, tz = "UTC"))
+      need <- is.na(parsed) & !is.na(tmp)
+      parsed[need] <- tmp[need]
+      if (!any(is.na(parsed))) break
+    }
+    parsed
+  }
+  
+  dt <- to_posix(x)
+  if (all(is.na(dt))) {
+    stop("[check_daily_meteo] Impossible de parser 'meteo_datetime' en date-heure.", call. = FALSE)
+  }
+  
+  dt <- dt[!is.na(dt)]
+  if (length(dt) == 0) {
+    stop("[check_daily_meteo] Toutes les valeurs de 'meteo_datetime' sont NA après parsing.", call. = FALSE)
+  }
+  
+  jours <- as.Date(dt, tz = "UTC")
+  counts <- table(jours)
+  has_multiple_per_day <- any(as.integer(counts) > 1L)
+  
+  hh <- as.integer(format(dt, "%H"))
+  mm <- as.integer(format(dt, "%M"))
+  ss <- as.integer(format(dt, "%S"))
+  has_non_midnight_time <- any((hh != 0L | mm != 0L | ss != 0L) & !is.na(hh))
+  
+  is_daily <- !(has_multiple_per_day || has_non_midnight_time)
+  return(is_daily)
+}
