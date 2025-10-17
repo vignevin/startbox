@@ -497,3 +497,150 @@ plot_xpbar <- function(
 
   return(p)
 }
+
+
+#' @title Plot ombrothermic weather chart
+#'
+#' @description
+#' This function generates an ombrothermic plot from weather data stored in the `self$weather` attribute of the `user_data` object.  
+#' It displays daily rainfall (in mm) as bars and daily minimum, mean, and maximum temperatures (in °C) as lines.
+#'
+#' The x-axis shows the months (horizontal labels) and the specific dates where
+#' rainfall exceeded 5 mm (vertical labels aligned below the axis).
+#'
+#' @param self A `user_data` R6 object containing a `weather` data.frame
+#' @param date_debut Optional start date for filtering the data (format `YYYY-MM-DD` or `DD/MM/YYYY`).
+#' @param date_fin Optional end date for filtering the data.
+#'
+#'
+#' @return A `ggplot` object representing the ombrothermic chart.  
+#' The used data (after cleaning and filtering) is attached as an attribute `"data_used"`.
+#'
+#' @export
+plot_meteo <- function(self, date_debut = NULL, date_fin = NULL) {
+  # 0) Données dispo ?
+  if (is.null(self$weather) || nrow(self$weather) == 0) {
+    stop("⚠️ Aucune donnée météo trouvée dans self$weather.", call. = FALSE)
+  }
+  
+  if (!check_daily_meteo(self)) {
+    stop("⏱️ Données horaires détectées dans 'meteo_datetime'.", call. = FALSE)
+  }
+  
+  df <- self$weather
+  names(df) <- tolower(names(df))
+  
+  attendues <- c("meteo_datetime", "air_tmin_celsius", "air_tmean_celsius", "air_tmax_celsius", "rain_mm")
+  manquantes <- setdiff(attendues, names(df))
+  if (length(manquantes) > 0) {
+    stop(sprintf("Colonne(s) manquante(s) : %s", paste(manquantes, collapse = ", ")), call. = FALSE)
+  }
+  
+  dt_formats <- c(
+    "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
+    "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M",
+    "%d-%m-%Y %H:%M:%S", "%d-%m-%Y %H:%M",
+    "%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M",
+    "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"
+  )
+  to_posix <- function(x) {
+    if (inherits(x, "POSIXct")) return(x)
+    if (inherits(x, "Date"))    return(as.POSIXct(x, tz = "UTC"))
+    out <- as.POSIXct(rep(NA_real_, length(x)), origin = "1970-01-01", tz = "UTC")
+    for (f in dt_formats) {
+      tmp  <- suppressWarnings(as.POSIXct(x, format = f, tz = "UTC"))
+      need <- is.na(out) & !is.na(tmp)
+      out[need] <- tmp[need]
+      if (!any(is.na(out))) break
+    }
+    out
+  }
+  dt <- to_posix(df$meteo_datetime)
+  if (any(is.na(dt))) stop("Impossible de convertir 'meteo_datetime' en date/heure.", call. = FALSE)
+  df$meteo_datetime <- as.Date(dt)
+  
+  to_num <- function(x) {
+    x <- gsub(",", ".", x, fixed = TRUE)
+    x <- gsub("\\s+", "", x)
+    suppressWarnings(as.numeric(x))
+  }
+  df$rain_mm           <- to_num(df$rain_mm)
+  df$air_tmin_celsius  <- to_num(df$air_tmin_celsius)
+  df$air_tmean_celsius <- to_num(df$air_tmean_celsius)
+  df$air_tmax_celsius  <- to_num(df$air_tmax_celsius)
+  
+  if (all(is.na(df$air_tmean_celsius)) && any(!is.na(df$air_tmin_celsius) & !is.na(df$air_tmax_celsius))) {
+    df$air_tmean_celsius <- (df$air_tmin_celsius + df$air_tmax_celsius) / 2
+  }
+  
+  if (!is.null(date_debut)) date_debut <- as.Date(date_debut)
+  if (!is.null(date_fin))   date_fin   <- as.Date(date_fin)
+  if (!is.null(date_debut)) df <- dplyr::filter(df, meteo_datetime >= date_debut)
+  if (!is.null(date_fin))   df <- dplyr::filter(df, meteo_datetime <= date_fin)
+  if (nrow(df) == 0) stop("Aucune donnée dans la plage de dates sélectionnée.", call. = FALSE)
+  
+  df$rain_mm[df$rain_mm < 0] <- 0
+  df$air_tmin_celsius[df$air_tmin_celsius < -50 | df$air_tmin_celsius > 70]    <- NA_real_
+  df$air_tmean_celsius[df$air_tmean_celsius < -50 | df$air_tmean_celsius > 70] <- NA_real_
+  df$air_tmax_celsius[df$air_tmax_celsius < -50 | df$air_tmax_celsius > 70]    <- NA_real_
+  
+  mm_max <- max(df$rain_mm, na.rm = TRUE)
+  breaks_mm_droit <- seq(0, max(10, ceiling(mm_max / 10) * 10), by = 10)
+  
+  min_d <- min(df$meteo_datetime, na.rm = TRUE)
+  max_d <- max(df$meteo_datetime, na.rm = TRUE)
+  month_breaks <- seq(as.Date(format(min_d, "%Y-%m-01")),
+                      as.Date(format(max_d, "%Y-%m-01")),
+                      by = "1 month")
+  month_labels <- format(month_breaks, "%B") 
+  
+  seuil_pluie <- 5
+  rain_breaks <- sort(unique(df$meteo_datetime[df$rain_mm > seuil_pluie]))
+  
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = meteo_datetime)) +
+    ggplot2::geom_col(
+      ggplot2::aes(y = rain_mm / 2),
+      fill = "#223b7b", alpha = 0.6, width = 0.9, na.rm = TRUE
+    ) +
+    ggplot2::geom_line(ggplot2::aes(y = air_tmin_celsius,  color = "Tmin (°C)"), linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::geom_line(ggplot2::aes(y = air_tmean_celsius, color = "Tmoy (°C)"), linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::geom_line(ggplot2::aes(y = air_tmax_celsius,  color = "Tmax (°C)"), linewidth = 0.9, na.rm = TRUE) +
+    ggplot2::scale_y_continuous(
+      name     = "Température (°C)",
+      labels   = scales::label_number(accuracy = 1),
+      sec.axis = ggplot2::sec_axis(~ . * 2, name = "Pluie (mm)", breaks = breaks_mm_droit)
+    ) +
+    ggplot2::scale_x_date(breaks = month_breaks, labels = month_labels) +
+    ggplot2::scale_color_manual(
+      name = NULL,
+      values = c("Tmin (°C)" = "#66b2ff", "Tmoy (°C)" = "#ffcc33", "Tmax (°C)" = "#cc3333")
+    ) +
+    ggplot2::labs(title = "Météo (échelle ombrothermique P = 2T)", x = NULL) +
+    ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(
+      legend.position    = "top",
+      axis.title.y.right = ggplot2::element_text(margin = ggplot2::margin(l = 8)),
+      axis.text.x        = ggplot2::element_text(angle = 0, vjust = 1, hjust = 0.5),
+      plot.margin        = ggplot2::margin(b = 36, l = 6, r = 6, t = 6)  
+    ) +
+    ggplot2::coord_cartesian(clip = "off")
+  
+  if (length(rain_breaks) > 0) {
+    p <- p +
+      ggplot2::geom_text(
+        data = data.frame(
+          meteo_datetime = rain_breaks,
+          y = -Inf,                                
+          label = format(rain_breaks, "%d/%m")
+        ),
+        mapping = ggplot2::aes(x = meteo_datetime, y = y, label = label),
+        inherit.aes = FALSE,
+        angle = 90, vjust = -0.4, hjust = 0.5,  
+        size = 3, alpha = 0.9
+      )
+  }
+  
+  attr(p, "data_used") <- df
+  p
+}
+
