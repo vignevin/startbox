@@ -175,6 +175,13 @@ user_data <- R6::R6Class(
       self$traceability <- dplyr::bind_rows(self$traceability, new_entry)
     },
     
+    #' @description
+    #' Imports data from POM (Epicure) so that it is added to the weather object of the class.
+    #'
+    #' @param file Path to the data leading to a file containing weather data 
+    #' @param skip_forecast Logical. If `TRUE` (default), the first 14 data rows are removed before processing (commonly forecast values).
+    #'
+    #' @return This function updates the internal `weather` data frame with standardized columns 
     import_meteo = function(file, skip_forecast = TRUE) {
       
       df <- readr::read_delim(
