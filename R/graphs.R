@@ -511,14 +511,17 @@ plot_xpbar <- function(
 #' @param self A `user_data` R6 object containing a `weather` data.frame
 #' @param date_debut Optional start date for filtering the data (format `YYYY-MM-DD` or `DD/MM/YYYY`).
 #' @param date_fin Optional end date for filtering the data.
+#' @param afficher_dates Logical, default `TRUE`. If `TRUE`, adds date labels above rainfall bars where `rain_mm > 5`.
+#' @param afficher_traitements Logical, default `TRUE`. If `TRUE`, draws treatment markers using unique dates found in `self$metadata$ppp$p_app_date` within the filtered range.
+#' @param afficher_observations Logical, default `TRUE`. If `TRUE`, draws observation markers using unique `observation_date` values merged from all data frames in `self$obs_data` within the filtered range.
 #'
 #'
 #' @return A `ggplot` object representing the ombrothermic chart.  
 #' The used data (after cleaning and filtering) is attached as an attribute `"data_used"`.
 #'
 #' @export
-plot_meteo <- function(self, date_debut = NULL, date_fin = NULL) {
-  # 0) Données dispo ?
+plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates = TRUE, afficher_traitements = TRUE, afficher_observations = TRUE) {
+  
   if (is.null(self$weather) || nrow(self$weather) == 0) {
     stop("⚠️ Aucune donnée météo trouvée dans self$weather.", call. = FALSE)
   }
@@ -595,8 +598,39 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL) {
   month_labels <- format(month_breaks, "%B") 
   
   seuil_pluie <- 5
-  rain_breaks <- sort(unique(df$meteo_datetime[df$rain_mm > seuil_pluie]))
   
+  # --- Labels de date au-dessus des barres de pluie (> seuil_pluie)
+  rain_labels_df <- if (afficher_dates) {
+    df |>
+      dplyr::filter(!is.na(rain_mm), rain_mm > seuil_pluie) |>
+      dplyr::transmute(
+        meteo_datetime,
+        y = rain_mm / 2 * 1.02,
+        label = format(meteo_datetime, "%d/%m")
+      )
+  } else {
+    df[0, c("meteo_datetime")]
+  }
+  
+  # ---- Préparation des dates de traitement (si disponibles)
+  treat_df <- NULL
+  if (!is.null(self$metadata) && !is.null(self$metadata$ppp)) {
+    ppp <- self$metadata$ppp
+    nms <- tolower(names(ppp))
+    if ("p_app_date" %in% nms) {
+      tdt <- to_posix(ppp[[ which(nms == "p_app_date") ]])
+      tdt <- as.Date(tdt)
+      tdt <- tdt[!is.na(tdt)]
+      if (!is.null(date_debut)) tdt <- tdt[tdt >= date_debut]
+      if (!is.null(date_fin))   tdt <- tdt[tdt <= date_fin]
+      tdt <- unique(tdt)
+      if (length(tdt) > 0) {
+        treat_df <- data.frame(meteo_datetime = sort(tdt))
+      }
+    }
+  }
+  
+  # ---- Construction du graphique
   p <- ggplot2::ggplot(df, ggplot2::aes(x = meteo_datetime)) +
     ggplot2::geom_col(
       ggplot2::aes(y = rain_mm / 2),
@@ -608,36 +642,82 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL) {
     ggplot2::scale_y_continuous(
       name     = "Température (°C)",
       labels   = scales::label_number(accuracy = 1),
-      sec.axis = ggplot2::sec_axis(~ . * 2, name = "Pluie (mm)", breaks = breaks_mm_droit)
+      sec.axis = ggplot2::sec_axis(~ . * 2, name = "Pluie (mm)", breaks = breaks_mm_droit),
+      expand   = ggplot2::expansion(mult = c(0.05, 0.16))
     ) +
     ggplot2::scale_x_date(breaks = month_breaks, labels = month_labels) +
     ggplot2::scale_color_manual(
       name = NULL,
-      values = c("Tmin (°C)" = "#66b2ff", "Tmoy (°C)" = "#ffcc33", "Tmax (°C)" = "#cc3333")
-    ) +
+      values = c("Tmin (°C)" = "#66b2ff", "Tmoy (°C)" = "#ffcc33", "Tmax (°C)" = "#cc3333", "Traitement" = "black", "Observation" = "black"),
+      breaks = c("Tmin (°C)", "Tmoy (°C)", "Tmax (°C)", "Traitement", "Observation")
+    )+
     ggplot2::labs(title = "Météo (échelle ombrothermique P = 2T)", x = NULL) +
     ggplot2::theme_minimal(base_size = 12) +
     ggplot2::theme(
       legend.position    = "top",
       axis.title.y.right = ggplot2::element_text(margin = ggplot2::margin(l = 8)),
       axis.text.x        = ggplot2::element_text(angle = 0, vjust = 1, hjust = 0.5),
-      plot.margin        = ggplot2::margin(b = 36, l = 6, r = 6, t = 6)  
+      plot.margin        = ggplot2::margin(b = 24, l = 6, r = 6, t = 6)
     ) +
     ggplot2::coord_cartesian(clip = "off")
   
-  if (length(rain_breaks) > 0) {
+  # --- Ajout des labels de date au-dessus des barres de pluie
+  if ((afficher_dates) && nrow(rain_labels_df) > 0) {
     p <- p +
       ggplot2::geom_text(
-        data = data.frame(
-          meteo_datetime = rain_breaks,
-          y = -Inf,                                
-          label = format(rain_breaks, "%d/%m")
-        ),
+        data = rain_labels_df,
         mapping = ggplot2::aes(x = meteo_datetime, y = y, label = label),
         inherit.aes = FALSE,
-        angle = 90, vjust = -0.4, hjust = 0.5,  
-        size = 3, alpha = 0.9
+        vjust = -0.1, hjust = 0.5, angle = 0, size = 3, alpha = 0.95
       )
+  }
+  
+  # --- Détermine une "ligne du haut" commune pour placer triangles (traitements) et points (observations)
+  tmax <- suppressWarnings(max(df$air_tmax_celsius, na.rm = TRUE))
+  tmin <- suppressWarnings(min(df$air_tmin_celsius, na.rm = TRUE))
+  if (!is.finite(tmax)) tmax <- suppressWarnings(max(df$air_tmean_celsius, na.rm = TRUE))
+  if (!is.finite(tmin)) tmin <- suppressWarnings(min(df$air_tmean_celsius, na.rm = TRUE))
+  rng  <- if (is.finite(tmax) && is.finite(tmin)) max(1, tmax - tmin) else 10
+  y_top <- if (is.finite(tmax)) tmax + 0.08 * rng else 5
+  y_obs <- y_top - 0.06 * rng  # juste en-dessous des triangles pour éviter le chevauchement
+  
+  # ---- Ajout des points de traitement (triangles)
+  if (afficher_traitements && !is.null(treat_df)) {
+    p <- p +
+      ggplot2::geom_point(
+        data = transform(treat_df, y = y_top, label = "Traitement"),
+        mapping = ggplot2::aes(x = meteo_datetime, y = y, color = label),
+        inherit.aes = FALSE,
+        shape = 17, size = 3, alpha = 0.95
+      )
+    attr(p, "treatment_dates_used") <- treat_df$meteo_datetime
+  }
+  
+  # ---- Récupération et ajout des points d'observation (shape 16), depuis tous les df de self$obs_data
+  if (afficher_observations && !is.null(self$obs_data) && length(self$obs_data) > 0) {
+    get_one <- function(d) {
+      if (is.data.frame(d) && "observation_date" %in% names(d)) {
+        dd <- as.Date(to_posix(d$observation_date))
+        dd <- dd[!is.na(dd)]
+        if (!is.null(date_debut)) dd <- dd[dd >= date_debut]
+        if (!is.null(date_fin))   dd <- dd[dd <= date_fin]
+        return(dd)
+      }
+      return(NULL)
+    }
+    all_dates <- unique(as.Date(unlist(lapply(self$obs_data, get_one))))
+    all_dates <- all_dates[!is.na(all_dates)]
+    if (length(all_dates) > 0) {
+      obs_df <- data.frame(meteo_datetime = sort(all_dates), y = y_obs)
+      p <- p +
+        ggplot2::geom_point(
+          data = transform(obs_df, label = "Observation"),
+          mapping = ggplot2::aes(x = meteo_datetime, y = y, color = label),
+          inherit.aes = FALSE,
+          shape = 16, size = 2.8, alpha = 0.95
+        )
+      attr(p, "observation_dates_used") <- obs_df$meteo_datetime
+    }
   }
   
   attr(p, "data_used") <- df
