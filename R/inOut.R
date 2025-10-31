@@ -177,7 +177,7 @@ check_standard_file <- function(trial_file = NULL) {
 #' @export
 load_metadata_sheets <- function(self) {
   wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
-
+  
   # Read and store 'dico' sheet
   if ("dictionary" %in% wb_trial$sheet_names) {
     dictionary <- openxlsx2::wb_to_df(
@@ -185,10 +185,10 @@ load_metadata_sheets <- function(self) {
       sheet = "dictionary",
       skip_empty_rows = TRUE
     )
-
+    
     # removing cols without names (NA or "")
     dictionary <- dictionary[, dplyr::coalesce(colnames(dictionary), "") != ""]
-
+    
     if (nrow(dictionary) > 0) {
       self$dictionary <- dictionary
       message("✅ Sheet 'dictionary loaded ")
@@ -200,7 +200,7 @@ load_metadata_sheets <- function(self) {
     message("ℹ️ Sheet 'dictionary' not found.")
     load_default_dictionary(self)
   }
-
+  
   # Read and store 'placette' sheet
   if ("placette" %in% wb_trial$sheet_names) {
     placette_data <- openxlsx2::wb_to_df(
@@ -208,12 +208,12 @@ load_metadata_sheets <- function(self) {
       sheet = "placette",
       skip_empty_rows = TRUE
     )
-
+    
     # removing cols without names (NA or "")
     placette_data <- placette_data[,
-      dplyr::coalesce(colnames(placette_data), "") != ""
+                                   dplyr::coalesce(colnames(placette_data), "") != ""
     ]
-
+    
     if (nrow(placette_data) > 0) {
       self$add_metadata("plot_desc", placette_data)
       message("✅ Sheet 'placette' loaded into metadata$placette.")
@@ -223,7 +223,7 @@ load_metadata_sheets <- function(self) {
   } else {
     warning("ℹ️ Sheet 'placette' not found.")
   }
-
+  
   # Read and store 'modalite' sheet
   if ("modalite" %in% wb_trial$sheet_names) {
     modalite_data <- openxlsx2::wb_to_df(
@@ -231,11 +231,11 @@ load_metadata_sheets <- function(self) {
       sheet = "modalite",
       skip_empty_rows = TRUE
     )
-
+    
     # removing cols without names (NA or "")
     moda_colnames <- colnames(modalite_data)
     modalite_data <- modalite_data[, dplyr::coalesce(moda_colnames, "") != ""]
-
+    
     if ("xp_trt_name" %in% moda_colnames) {
       if (!"xp_trt_code" %in% moda_colnames) {
         warning(
@@ -247,7 +247,7 @@ load_metadata_sheets <- function(self) {
           sum(
             is.na(modalite_data$xp_trt_name) | modalite_data$xp_trt_name == ""
           ) >
-            0
+          0
         ) {
           message(
             "⚠️ some xp_trt_name are missing. xp_trt_code used instead. Please check your data file"
@@ -260,13 +260,13 @@ load_metadata_sheets <- function(self) {
         )
       }
     }
-
+    
     ## convert data types
     modalite_data <- startbox::harmonize_column_types(
       modalite_data,
       dictionary = self$dictionary
     )
-
+    
     if (nrow(modalite_data) > 0) {
       self$add_metadata("moda_desc", modalite_data)
       message("✅ Sheet 'modalite' loaded into metadata$modalite.")
@@ -276,7 +276,37 @@ load_metadata_sheets <- function(self) {
   } else {
     message("ℹ️ Sheet 'modalite' not found.")
   }
+  
+  if ("ppp" %in% wb_trial$sheet_names) {
+    ppp_data <- openxlsx2::wb_to_df(
+      wb_trial,
+      sheet = "ppp",
+      skip_empty_rows = TRUE
+    )
+    
+    # removing cols without names (NA or "")
+    ppp_colnames <- colnames(ppp_data)
+    ppp_data <- ppp_data[, dplyr::coalesce(ppp_colnames, "") != ""]
+    
+    ## convert data types
+    ppp_data <- startbox::harmonize_column_types(
+      ppp_data,
+      dictionary = self$dictionary
+    )
+    
+    if (nrow(ppp_data) > 0) {
+      self$add_metadata("ppp", ppp_data)
+      message("✅ Sheet 'ppp' loaded into metadata$ppp.")
+    } else {
+      message("⚠️ Sheet 'ppp' is empty.")
+    }
+  } else {
+    message("ℹ️ Sheet 'ppp' not found.")
+  }
 }
+
+
+
 # Function to get and save the template Excel file
 #' get_template_excel
 #'
@@ -591,8 +621,8 @@ load_weather_sheet <- function(self) {
       self$weather <- meteo
       message("✅ Sheet 'meteo' loaded into self$weather")
     } else {
-      warning("⚠️ Sheet 'meteo' is empty.")
-      self$weather <- bNULL
+      message("⚠️ Sheet 'meteo' is empty.")
+      self$weather <- NULL
     }
   } else {
     message("ℹ️ Sheet 'meteo' not found.")
