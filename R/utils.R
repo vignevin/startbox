@@ -473,3 +473,34 @@ check_daily_meteo <- function(self) {
   is_daily <- !(has_multiple_per_day || has_non_midnight_time)
   return(is_daily)
 }
+
+check_pom <- function(df, required = c("DATE", "PLUIE", "TMOY")) {
+  # Vérifie que df est bien un data.frame
+  if (!is.data.frame(df)) {
+    stop("[check_pom] L'objet fourni n'est pas un data.frame.", call. = FALSE)
+  }
+  
+  # Colonnes réellement présentes
+  cols <- names(df)
+  
+  # Colonnes manquantes
+  missing <- setdiff(required, cols)
+  
+  # Si des colonnes manquent → message d'erreur clair
+  if (length(missing) > 0) {
+    stop(
+      paste0(
+        "[check_pom] Le fichier ne contient pas toutes les colonnes requises :\n",
+        "Colonnes manquantes : ", paste(missing, collapse = ", "), "\n",
+        "Colonnes trouvées : ", paste(cols, collapse = ", ")
+      ),
+      call. = FALSE
+    )
+  }
+  
+  # Si tout va bien
+  message("[check_pom] ✅ Toutes les colonnes nécessaires sont présentes : ",
+          paste(required, collapse = ", "))
+  return(TRUE)
+}
+
