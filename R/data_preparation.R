@@ -13,26 +13,30 @@
 harmonize_column_types <- function(
   df,
   dictionary = NULL
- ) {
+) {
   if (is.null(dictionary)) {
     dictionary_path = system.file(
       "extdata",
       "star_dictionary.csv",
       package = "startbox"
     )
-    if(!file.exists(dictionary_path)) {stop("no dictionary found")}
+    if (!file.exists(dictionary_path)) {
+      stop("no dictionary found")
+    }
     types_df <- utils::read.csv2(dictionary_path, stringsAsFactors = FALSE)
-     } else {
-       types_df <- dictionary
-     }
+  } else {
+    types_df <- dictionary
+  }
 
   types_df <- types_df[
     !(is.na(types_df$nom) |
-        types_df$nom == "" |
-        is.na(types_df$Rclass) |
-        types_df$Rclass == ""),
+      types_df$nom == "" |
+      is.na(types_df$Rclass) |
+      types_df$Rclass == ""),
   ]
-  if (nrow(types_df) == 0) {stop("empty dictionary or missing data")}
+  if (nrow(types_df) == 0) {
+    stop("empty dictionary or missing data")
+  }
   # type mapping
   types_map <- stats::setNames(as.list(types_df$Rclass), types_df$nom)
 
@@ -517,15 +521,15 @@ prepare_data <- function(
   }
 
   # if var_cols not provided, try to gess the variable to be prepared
-  if(is.null(var_cols)) {
-    if("value" %in% names(data)) {
-      var_cols <- "value"  ## assuming data is a prepared_dataframe
+  if (is.null(var_cols)) {
+    if ("value" %in% names(data)) {
+      var_cols <- "value" ## assuming data is a prepared_dataframe
     } else {
       candidates_vars <- find_vars(data) ## find vars that have a match in start dictionary
-      if(length(candidates_vars)>0) {
-        message("Variable choosen",candidates_vars[1]) # choose the first one
+      if (length(candidates_vars) > 0) {
+        message("Variable choosen", candidates_vars[1]) # choose the first one
         var_cols <- candidates_vars[1]
-    }
+      }
     }
   }
 
@@ -558,11 +562,15 @@ prepare_data <- function(
   }
 
   ## check correspondance between plot_id to adjust flex if not provided
-  if(is.null(flex)) {
-    if(check_plotid_diff(self$metadata$plot_desc, data)) {
-      message("flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10")
-      flex <- TRUE} else {
-        flex <- FALSE}
+  if (is.null(flex)) {
+    if (check_plotid_diff(self$metadata$plot_desc, data)) {
+      message(
+        "flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10"
+      )
+      flex <- TRUE
+    } else {
+      flex <- FALSE
+    }
   }
 
   # check filters
@@ -699,17 +707,17 @@ prepare_data <- function(
         if (nrow(data_tnt_filtered) == 0) {
           all_data <- merge_data_plotdesc(self, data, flex = flex) # to try to find code_tnt in metadata
           all_data <- merge_data_xpdesc(self, all_data) # to try to find code_tnt in metadata
-          if(!is.null(all_data)) {
-          all_data %>%
-            dplyr::filter(apply(
-              .,
-              1,
-              function(row) any(grepl(code_tnt, row))
-            )) -> data_tnt_filtered
+          if (!is.null(all_data)) {
+            all_data %>%
+              dplyr::filter(apply(
+                .,
+                1,
+                function(row) any(grepl(code_tnt, row))
+              )) -> data_tnt_filtered
           } else {
             message("sorry, code_tnt not found")
             return(NULL)
-            }
+          }
         }
 
         ## calcul of tnt mean by group_tnt
@@ -778,7 +786,7 @@ prepare_data <- function(
           dplyr::reframe(
             mean_tnt = mean(mean_tnt),
             value = efficacy({{ var }}, value_tnt = mean_tnt),
-            nb =  sum(!is.na({{ var }})) #dplyr::n()
+            nb = sum(!is.na({{ var }})) #dplyr::n()
           )
       } else {
         # end of efficacy case
@@ -786,7 +794,7 @@ prepare_data <- function(
           dplyr::group_by(!!!group_syms) %>%
           dplyr::summarise(
             value = funs[[i]]({{ var }}),
-            nb =  sum(!is.na({{ var }})), #dplyr::n(),
+            nb = sum(!is.na({{ var }})), #dplyr::n(),
             .groups = "drop"
           )
       }
@@ -875,4 +883,118 @@ prepare_data <- function(
     "Prepared data saved in [data_user object]$prepared_data$",
     prep_name
   ))
+}
+
+
+#' @description
+#' Standardize a raw POM (EPICURE) csv file
+#'
+#' @param file Path to the data leading to a csv file exported from Epicure (IFV Information system)
+#' @param skip_forecast Logical. If `TRUE` (default), the first 14 data rows are removed before processing (commonly forecast values).
+#'
+#' @return A standardized data.frame with consistent column names and structure.
+#'
+#'
+standardise_pom_csv = function(file, skip_forecast = TRUE) {
+
+  # check input file
+  if (!check_pom_csv(file)) {
+    message("[import_meteo] ⛔ Import interrupted: essential columns missing.")
+    return(invisible(self))
+  }
+
+  df <- readr::read_delim(
+    file,
+    delim = ";",
+    locale = readr::locale(decimal_mark = "."),
+    na = c("", "NA", "NaN"),
+    trim_ws = TRUE,
+    show_col_types = FALSE
+  )
+
+  # Remove the first 14 lines as they are forecast data.
+  if (skip_forecast) {
+    if (nrow(df) > 14) {
+      df <- df[-seq_len(14), , drop = FALSE]
+      message("[standardise_pom_csv] ℹ️ 14 firts lines removed (weather forecast)")
+    } else {
+      warning(
+        "[standardise_pom_csv] ⚠️ Less than 15 lines in the file, nothing deleted."
+      )
+    }
+  }
+
+
+  to_num <- function(x) {
+    if (is.numeric(x)) return(x)
+    as.numeric(as.character(x))
+  }
+
+  parse_date_base <- function(x) {
+    x <- as.character(x)
+    is_dmy_slash <- grepl("^\\d{2}/\\d{2}/\\d{4}$", x)
+    if (any(is_dmy_slash)) {
+      out <- as.Date(x, format = "%d/%m/%Y")
+    } else {
+      out <- rep(NA, length(x))
+    }
+    need <- is.na(out)
+    if (any(need)) {
+      tf <- c("%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d", "%m/%d/%Y", "%d/%m/%Y")
+      out[need] <- as.Date(x[need], tryFormats = tf)
+    }
+    out
+  }
+
+  src_present <- names(df)
+
+  # cols renaming
+  if ("DATE" %in% src_present)
+    df[["meteo_datetime"]] <- parse_date_base(df[["DATE"]])
+  if ("TMIN" %in% src_present) df[["air_tmin_celsius"]] <- to_num(df[["TMIN"]])
+  if ("TMAX" %in% src_present) df[["air_tmax_celsius"]] <- to_num(df[["TMAX"]])
+  if ("TMOY" %in% src_present) df[["air_tmean_celsius"]] <- to_num(df[["TMOY"]])
+  if ("PLUIE" %in% src_present) df[["rain_mm"]] <- to_num(df[["PLUIE"]])
+  if ("ETP" %in% src_present) df[["etp_mm"]] <- to_num(df[["ETP"]])
+  if ("UMOY" %in% src_present) df[["air_hmean_p"]] <- to_num(df[["UMOY"]])
+  if ("UMIN" %in% src_present) df[["air_hmin_p"]] <- to_num(df[["UMIN"]])
+  if ("UMAX" %in% src_present) df[["air_hmax_p"]] <- to_num(df[["UMAX"]])
+
+  # input cols
+  col_sources <- c(
+    "DATE",
+    "TMIN",
+    "TMAX",
+    "TMOY",
+    "PLUIE",
+    "ETP",
+    "UMOY",
+    "UMIN",
+    "UMAX"
+  )
+  # output cols
+  col_cibles <- c(
+    "meteo_datetime",
+    "air_tmin_celsius",
+    "air_tmax_celsius",
+    "air_tmean_celsius",
+    "rain_mm",
+    "etp_mm",
+    "air_hmean_p",
+    "air_hmin_p",
+    "air_hmax_p"
+  )
+
+  # remove input cols
+  keep <- setdiff(names(df), intersect(names(df), col_sources))
+  df <- df[, keep, drop = FALSE]
+
+  # ordering
+  col_existantes <- names(df)
+  std_cols <- intersect(col_cibles, col_existantes)
+  extra_cols <- setdiff(col_existantes, std_cols)
+  df <- df[, c(std_cols, extra_cols), drop = FALSE]
+
+  message("[standardise_pom_csv] ✅ ", nrow(df), " standardised rows")
+  return(df)
 }

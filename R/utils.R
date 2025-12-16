@@ -401,106 +401,170 @@ getdataframe <- function(self = NULL,dfname = NULL) {
   message(dfname," not found nor in either obs_data or prepared_data")
 }
 
-#' @title Check if weather data are daily or hourly
+
+
+#' Convert heterogeneous date/time inputs to POSIXct (UTC)
+#'
+#' Converts a vector of dates or date-time representations into a
+#' \code{POSIXct} object in the \code{UTC} time zone. The function accepts
+#' \code{POSIXct}, \code{Date}, or character inputs and attempts to parse
+#' character values using a predefined set of common date and date-time
+#' formats. Values that cannot be parsed are returned as \code{NA}.
+#'
+#' @param v A vector of dates or date-time values. Can be of class
+#'   \code{POSIXct}, \code{Date}, or character.
+#'
+#' @return A vector of class \code{POSIXct} with time zone set to \code{UTC}.
+#'   Unparsable values are returned as \code{NA}.
+#'
+#' @details
+#' If \code{v} is already a \code{POSIXct} object, it is returned unchanged.
+#' If \code{v} is a \code{Date} object, it is converted to \code{POSIXct}
+#' with an implicit time of midnight (00:00:00) in UTC.
+#' Character inputs are parsed iteratively using several common
+#' date and date-time formats until all possible values are converted.
+#'
+#' @examples
+#' to_posix("2024-03-15 14:30")
+#' to_posix(c("15/03/2024", "2024-03-16 08:00"))
+#' to_posix(as.Date("2024-03-15"))
+#'
+to_posix <- function(v) {
+  if (inherits(v, "POSIXct")) return(v)
+  if (inherits(v, "Date"))    return(as.POSIXct(v, tz = "UTC"))
+  fmts <- c(
+    "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
+    "%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M",
+    "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M",
+    "%d-%m-%Y %H:%M:%S", "%d-%m-%Y %H:%M",
+    "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"
+  )
+  parsed <- rep(NA_real_, length(v))
+  parsed <- as.POSIXct(parsed, origin = "1970-01-01", tz = "UTC")
+  for (f in fmts) {
+    tmp <- suppressWarnings(as.POSIXct(v, format = f, tz = "UTC"))
+    need <- is.na(parsed) & !is.na(tmp)
+    parsed[need] <- tmp[need]
+    if (!any(is.na(parsed))) break
+  }
+  parsed
+}
+
+
+#' @title Check if meteo data are daily or hourly
 #'
 #' @description
-#' This function analyzes the `meteo_datetime` column from the `weather` slot
-#' of the `user_data` object and determines if the data are daily or hourly observations.  
+#' This function analyzes the `meteo_datetime` column from the `meteo` slot
+#' of the `user_data` object and determines if the data are daily or hourly observations.
 #' It is mainly used by [plot_meteo()] to ensure that daily data are plotted correctly.
 #'
-#' @param self A `user_data` R6 object containing a `weather` data.frame with a column named `meteo_datetime`.
+#' @param self A `user_data` R6 object containing a `meteo` data.frame with a column named `meteo_datetime`.
 #'
 #'
 #' @return
 #' A logical value:
-#' `TRUE` — if the dataset represents daily weather data.  
+#' `TRUE` — if the dataset represents daily meteo data.
 #' `FALSE` — if the dataset contains hourly (or sub-daily) timestamps.
 #'
 #' @importFrom base as.POSIXct as.Date format suppressWarnings
-#' 
-#' @export
+#'
 check_daily_meteo <- function(self) {
-  
-  if (is.null(self$weather) || nrow(self$weather) == 0) {
-    stop("[check_daily_meteo] self$weather est vide. Charge d'abord via load_weather_sheets().", call. = FALSE)
+
+  if (is.null(self$meteo) || nrow(self$meteo) == 0) {
+    stop("[check_daily_meteo] self$meteo is empty", call. = FALSE)
   }
-  if (!("meteo_datetime" %in% names(self$weather))) {
-    stop("[check_daily_meteo] Colonne 'meteo_datetime' absente de self$weather.", call. = FALSE)
+  if (!("meteo_datetime" %in% names(self$meteo))) {
+    stop("[check_daily_meteo] Col 'meteo_datetime' missing", call. = FALSE)
   }
-  
-  x <- self$weather$meteo_datetime
-  
-  to_posix <- function(v) {
-    if (inherits(v, "POSIXct")) return(v)
-    if (inherits(v, "Date"))    return(as.POSIXct(v, tz = "UTC"))
-    fmts <- c(
-      "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M",
-      "%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M",
-      "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M",
-      "%d-%m-%Y %H:%M:%S", "%d-%m-%Y %H:%M",
-      "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"
-    )
-    parsed <- rep(NA_real_, length(v))
-    parsed <- as.POSIXct(parsed, origin = "1970-01-01", tz = "UTC") 
-    for (f in fmts) {
-      tmp <- suppressWarnings(as.POSIXct(v, format = f, tz = "UTC"))
-      need <- is.na(parsed) & !is.na(tmp)
-      parsed[need] <- tmp[need]
-      if (!any(is.na(parsed))) break
-    }
-    parsed
-  }
-  
+
+  x <- self$meteo$meteo_datetime
+
   dt <- to_posix(x)
   if (all(is.na(dt))) {
-    stop("[check_daily_meteo] Impossible de parser 'meteo_datetime' en date-heure.", call. = FALSE)
+    stop("[check_daily_meteo] Impossible to parse 'meteo_datetime' in date-hour format", call. = FALSE)
   }
-  
+
   dt <- dt[!is.na(dt)]
   if (length(dt) == 0) {
-    stop("[check_daily_meteo] Toutes les valeurs de 'meteo_datetime' sont NA après parsing.", call. = FALSE)
+    stop("[check_daily_meteo] All values of 'meteo_datetime' are NA after parsing.", call. = FALSE)
   }
-  
+
   jours <- as.Date(dt, tz = "UTC")
   counts <- table(jours)
   has_multiple_per_day <- any(as.integer(counts) > 1L)
-  
+
   hh <- as.integer(format(dt, "%H"))
   mm <- as.integer(format(dt, "%M"))
   ss <- as.integer(format(dt, "%S"))
   has_non_midnight_time <- any((hh != 0L | mm != 0L | ss != 0L) & !is.na(hh))
-  
+
   is_daily <- !(has_multiple_per_day || has_non_midnight_time)
   return(is_daily)
 }
 
-check_pom <- function(df, required = c("DATE", "PLUIE", "TMOY")) {
-  # Vérifie que df est bien un data.frame
-  if (!is.data.frame(df)) {
-    stop("[check_pom] L'objet fourni n'est pas un data.frame.", call. = FALSE)
+#' Check for required columns in a data frame
+#'
+#' This function verifies that a given data frame is compliant to a POM export, that means
+#' it contains all required columns.
+#' If any required column is missing, it stops execution and provides a clear
+#' error message listing missing and present columns. If all required columns
+#' are present, it returns TRUE and prints a confirmation message.
+#'
+#' @param filepath Path to the .csv file to check.
+#' @param required A character vector of column names that must be present in \code{df}.
+#'   Default is \code{c("DATE", "PLUIE")}.
+#'
+#' @return Returns \code{TRUE} if the csv file is compliant (csv and all required columns presents), else stops execution
+#'   with an error message.
+#'
+#' @details
+#' - The function first checks if \code{filepath} is indeed a csv file.
+#' - It then compares the names of \code{filepath} to the \code{required} columns.
+#' - If any columns are missing, an informative error is thrown listing missing
+#'   and available columns.
+#' - If all required columns are present, a message is displayed confirming their presence.
+#'
+check_pom_csv <- function(filepath, required = c("DATE", "PLUIE")) {
+  if (!file.exists(filepath)) {
+    stop("Missing file", filepath, call. = FALSE)
   }
-  
-  # Colonnes réellement présentes
+
+  if (tools::file_ext(filepath) != "csv") {
+    stop("File must be a csv file", call. = FALSE)
+  }
+
+  df <- utils::read.csv2(file = filepath, fileEncoding = "latin1")
+
+  # Check that df is indeed a data.frame
+  if (!is.data.frame(df)) {
+    stop("[check_pom] The provided object is not a data.frame.", call. = FALSE)
+  }
+
+  # Columns actually present
   cols <- names(df)
-  
-  # Colonnes manquantes
+
+  # Missing columns
   missing <- setdiff(required, cols)
-  
-  # Si des colonnes manquent → message d'erreur clair
+
+  #iIf some columns are missing : clear error message
   if (length(missing) > 0) {
     stop(
       paste0(
-        "[check_pom] Le fichier ne contient pas toutes les colonnes requises :\n",
-        "Colonnes manquantes : ", paste(missing, collapse = ", "), "\n",
-        "Colonnes trouvées : ", paste(cols, collapse = ", ")
+        "[check_pom] The data frame does not contain all required columns:\n",
+        "Missing columns: ",
+        paste(missing, collapse = ", "),
+        "\n",
+        "Columns found: ",
+        paste(cols, collapse = ", ")
       ),
       call. = FALSE
     )
   }
-  
-  # Si tout va bien
-  message("[check_pom] ✅ Toutes les colonnes nécessaires sont présentes : ",
-          paste(required, collapse = ", "))
+
+  # If all is fine
+  message(
+    "[check_pom] ✅  Required cols présents:  " ,
+    paste(required, collapse = ", ")
+  )
   return(TRUE)
 }
-

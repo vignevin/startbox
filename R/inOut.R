@@ -177,7 +177,7 @@ check_standard_file <- function(trial_file = NULL) {
 #' @export
 load_metadata_sheets <- function(self) {
   wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
-  
+
   # Read and store 'dico' sheet
   if ("dictionary" %in% wb_trial$sheet_names) {
     dictionary <- openxlsx2::wb_to_df(
@@ -185,10 +185,10 @@ load_metadata_sheets <- function(self) {
       sheet = "dictionary",
       skip_empty_rows = TRUE
     )
-    
+
     # removing cols without names (NA or "")
     dictionary <- dictionary[, dplyr::coalesce(colnames(dictionary), "") != ""]
-    
+
     if (nrow(dictionary) > 0) {
       self$dictionary <- dictionary
       message("✅ Sheet 'dictionary loaded ")
@@ -200,7 +200,7 @@ load_metadata_sheets <- function(self) {
     message("ℹ️ Sheet 'dictionary' not found.")
     load_default_dictionary(self)
   }
-  
+
   # Read and store 'placette' sheet
   if ("placette" %in% wb_trial$sheet_names) {
     placette_data <- openxlsx2::wb_to_df(
@@ -208,12 +208,12 @@ load_metadata_sheets <- function(self) {
       sheet = "placette",
       skip_empty_rows = TRUE
     )
-    
+
     # removing cols without names (NA or "")
     placette_data <- placette_data[,
                                    dplyr::coalesce(colnames(placette_data), "") != ""
     ]
-    
+
     if (nrow(placette_data) > 0) {
       self$add_metadata("plot_desc", placette_data)
       message("✅ Sheet 'placette' loaded into metadata$placette.")
@@ -223,7 +223,7 @@ load_metadata_sheets <- function(self) {
   } else {
     warning("ℹ️ Sheet 'placette' not found.")
   }
-  
+
   # Read and store 'modalite' sheet
   if ("modalite" %in% wb_trial$sheet_names) {
     modalite_data <- openxlsx2::wb_to_df(
@@ -231,11 +231,11 @@ load_metadata_sheets <- function(self) {
       sheet = "modalite",
       skip_empty_rows = TRUE
     )
-    
+
     # removing cols without names (NA or "")
     moda_colnames <- colnames(modalite_data)
     modalite_data <- modalite_data[, dplyr::coalesce(moda_colnames, "") != ""]
-    
+
     if ("xp_trt_name" %in% moda_colnames) {
       if (!"xp_trt_code" %in% moda_colnames) {
         warning(
@@ -260,13 +260,13 @@ load_metadata_sheets <- function(self) {
         )
       }
     }
-    
+
     ## convert data types
     modalite_data <- startbox::harmonize_column_types(
       modalite_data,
       dictionary = self$dictionary
     )
-    
+
     if (nrow(modalite_data) > 0) {
       self$add_metadata("moda_desc", modalite_data)
       message("✅ Sheet 'modalite' loaded into metadata$modalite.")
@@ -276,24 +276,24 @@ load_metadata_sheets <- function(self) {
   } else {
     message("ℹ️ Sheet 'modalite' not found.")
   }
-  
+
   if ("ppp" %in% wb_trial$sheet_names) {
     ppp_data <- openxlsx2::wb_to_df(
       wb_trial,
       sheet = "ppp",
       skip_empty_rows = TRUE
     )
-    
+
     # removing cols without names (NA or "")
     ppp_colnames <- colnames(ppp_data)
     ppp_data <- ppp_data[, dplyr::coalesce(ppp_colnames, "") != ""]
-    
+
     ## convert data types
     ppp_data <- startbox::harmonize_column_types(
       ppp_data,
       dictionary = self$dictionary
     )
-    
+
     if (nrow(ppp_data) > 0) {
       self$add_metadata("ppp", ppp_data)
       message("✅ Sheet 'ppp' loaded into metadata$ppp.")
@@ -592,42 +592,130 @@ load_default_dictionary <- function(self) {
 }
 
 
-#' @title Load weather data from Excel sheet
+#' @title Load meteo data from Excel sheet
 #'
 #' @description
-#' This function reads the `meteo` sheet from the Excel file associated with a `user_data` and stores it in the slot `self$weather`.  
-#' If the sheet is not found, `self$weather` is set to `NULL`.
+#' This function reads the `meteo` sheet from the Excel file associated with a `user_data` and stores it in the slot `self$meteo`.
+#' If the sheet is not found, `self$meteo` is set to `NULL`.
 #'
 #' @param self A `user_data` R6 object containing the `trial_file` attribute,
 #'
-#' @return Invisibly returns the loaded data.frame stored in `self$weather`.
+#' @return Invisibly returns the loaded data.frame stored in `self$meteo`.
 #'
 #' @importFrom openxlsx2 wb_load wb_to_df
 #' @importFrom dplyr coalesce
 #' @export
-load_weather_sheet <- function(self) {
+load_meteo <- function(self) {
   wb_trial <- openxlsx2::wb_load(self$excel_data_trial)
-  
+
   if ("meteo" %in% wb_trial$sheet_names) {
     meteo <- openxlsx2::wb_to_df(
       wb_trial,
       sheet = "meteo",
       skip_empty_rows = TRUE
     )
-    
+
     meteo <- meteo[, dplyr::coalesce(base::colnames(meteo), "") != ""]
-    
+
     if (nrow(meteo) > 0) {
-      self$weather <- meteo
-      message("✅ Sheet 'meteo' loaded into self$weather")
+      self$meteo <- meteo
+      message("✅ Sheet 'meteo' loaded into self$meteo")
     } else {
       message("⚠️ Sheet 'meteo' is empty.")
-      self$weather <- NULL
+      self$meteo <- NULL
     }
   } else {
     message("ℹ️ Sheet 'meteo' not found.")
-    self$weather <- NULL
+    self$meteo <- NULL
   }
-  
-  invisible(self$weather)
+
+  invisible(self$meteo)
+}
+
+
+#' Import meteo data from a EPICURE POM csv file
+#'
+#' @description
+#' This function imports meteorological data from a CSV file exported from the EPICURE Information System.
+#' The data are standardized before being added to `self$meteo`.
+#'
+#' If meteorological data already exist in `self$meteo`, the `update` parameter allows the user to:
+#' - `"new"`: append only the data more recent than the last `meteo_datetime` in `self$meteo`.
+#' - `"all"`: replace all existing data with the new data.
+#'
+#' The function also updates the internal log (traceability).
+#'
+#' @param filepath File path of the csv file to be imported. This file must be a csv file exported from Epicure (IFV Information system)
+#' @param skip_forecast Logical. If `TRUE` (default), the first 14 data rows are removed before processing (commonly forecast values).
+#' @param self An `user_data` R6 object in which to import the meteo
+#' @param update  Character. Determines how to update existing meteorological data: `"new"` (default) or `"all"`.
+#' @returns Updates `self$meteo` with the imported data, update also the log. Returns `invisible(self$obs_data)`.
+#' @details
+#' The function automatically detects new rows based on the `meteo_datetime` column.
+#' If `update = "new"` but `self$meteo` is empty, all data are imported.
+#' A message is displayed indicating the number of rows imported.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Import new meteorological data into an existing user_data object
+#' import_pom_csv(self = my_user_data, filepath = "meteo_2025.csv", update = "new")
+#'
+#' # Replace all existing meteorological data
+#' import_pom_csv(self = my_user_data, filepath = "meteo_2025.csv", update = "all")
+#' }
+#'
+import_pom_csv <- function(
+  self,
+  filepath,
+  skip_forecast = TRUE,
+  update = c("new", "all")
+) {
+  update <- match.arg(update, several.ok = FALSE)
+  if (!update %in% c("new", "all")) {
+    stop("Invalid value for `update`")
+  }
+  ## number of rows added
+  ## check, read and standardise pom file
+  df_mto <- standardise_pom_csv(file = filepath, skip_forecast = skip_forecast)
+  if (exists("df_mto", inherits = FALSE)) {
+    nrows_df_mto <- nrow(df_mto)
+    nrows_added <- 0
+    ## check if meteo alread exists in self and if it contains at least a col `meteo_datetime`
+    if (update == "new") {
+      if (is.null(self$meteo)) {
+        warning(
+          "Warning : no previous meteo data found in self. All data are imported"
+        )
+        self$meteo <- df_mto
+        nrows_added <- nrows_df_mto
+      }
+      if (!is.null(self$meteo)) {
+        if (!("meteo_datetime" %in% names(self$meteo))) {
+          message(
+            "[import_pom_csv] Col 'meteo_datetime' missing in meteo. Check previous meteo data and consider using update = 'all'",
+            call. = FALSE
+          )
+        } else {
+          last_date <- max(to_posix(self$meteo$meteo_datetime))
+          rows_to_add <- to_posix(df_mto$meteo_datetime) > last_date
+          self$meteo <- dplyr::bind_rows(self$meteo, df_mto[rows_to_add, ])
+          self$meteo <- self$meteo[
+            order(to_posix(self$meteo$meteo_datetime), decreasing = TRUE),
+          ]
+          nrows_added <- sum(rows_to_add)
+          if (nrows_added == 0) {
+            message("No NEW rows to import")
+          }
+        }
+      }
+    }
+    if (update == "all") {
+      self$meteo <- df_mto
+      nrows_added <- nrows_df_mto
+    }
+    message(nrows_added, " rows imported in meteo")
+    ########### TO DO ###########################################
+    # if nrows_added>0 add a new line to traceability
+  }
 }
