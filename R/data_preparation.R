@@ -282,7 +282,7 @@ standardise_topvigne_csv <- function(
   df <- utils::read.csv2(file = filepath, fileEncoding = "latin1")
 
   if (all(c("Maladie", "Organe", "Valeur") %in% names(df))) {
-    df <- df %>%
+    df <- df |>
       tidyr::pivot_wider(names_from = c(Maladie, Organe), values_from = Valeur)
   }
 
@@ -295,7 +295,7 @@ standardise_topvigne_csv <- function(
   names(df) <- noms_apres
 
   if ("bbch_stage" %in% names(df)) {
-    df <- df %>%
+    df <- df |>
       dplyr::mutate(
         bbch_stage = ifelse(
           grepl("^BBCH", bbch_stage),
@@ -370,7 +370,7 @@ standardise_data <- function(
 
   # check cols presence
   if (all(c("Maladie", "Organe", "Valeur") %in% names(df))) {
-    df <- df %>%
+    df <- df |>
       tidyr::pivot_wider(names_from = c(Maladie, Organe), values_from = Valeur)
   }
 
@@ -385,7 +385,7 @@ standardise_data <- function(
 
   # format bbch
   if ("bbch_stage" %in% names(df)) {
-    df <- df %>%
+    df <- df |>
       dplyr::mutate(
         bbch_stage = ifelse(
           grepl("^BBCH", bbch_stage),
@@ -436,7 +436,7 @@ resume_pivot_wider <- function(df_resume) {
   if (
     "calculation" %in% colnames(df_resume) && "value" %in% colnames(df_resume)
   ) {
-    df_resume %>%
+    df_resume |>
       tidyr::pivot_wider(
         names_from = calculation,
         values_from = value
@@ -598,7 +598,7 @@ prepare_data <- function(
     # filtering
     if (length(filters) > 0) {
       for (col in names(filters)) {
-        data2flt %>% dplyr::filter(.data[[col]] %in% filters[[col]]) -> data2flt
+        data2flt |> dplyr::filter(.data[[col]] %in% filters[[col]]) -> data2flt
       }
       if (nrow(data2flt) == 0) {
         message("no more data after filtering. function aborted")
@@ -679,12 +679,12 @@ prepare_data <- function(
       # data$calculation <- as.character(var)
       # data$nb = 1
       var_name <- rlang::as_string(var)
-      data %>%
-        dplyr::rename(value = !!var) %>%
+      data |>
+        dplyr::rename(value = !!var) |>
         dplyr::mutate(
           calculation = var_name,
           nb = as.integer(!is.na(value))
-        ) %>%
+        ) |>
         dplyr::select(c(!!!group_syms, calculation, value, nb)) -> data_resume
       if (nrow(data_resume) != nrow(data)) {
         stop("Error in raw extraction")
@@ -698,7 +698,7 @@ prepare_data <- function(
     for (i in 1:length(funs)) {
       if (identical(funs[[i]], startbox::efficacy)) {
         # filter data for tnt rows
-        data %>%
+        data |>
           dplyr::filter(apply(
             .,
             1,
@@ -708,7 +708,7 @@ prepare_data <- function(
           all_data <- merge_data_plotdesc(self, data, flex = flex) # to try to find code_tnt in metadata
           all_data <- merge_data_xpdesc(self, all_data) # to try to find code_tnt in metadata
           if (!is.null(all_data)) {
-            all_data %>%
+            all_data |>
               dplyr::filter(apply(
                 .,
                 1,
@@ -721,8 +721,8 @@ prepare_data <- function(
         }
 
         ## calcul of tnt mean by group_tnt
-        data_tnt_filtered %>%
-          dplyr::group_by(!!!group_tnt) %>%
+        data_tnt_filtered |>
+          dplyr::group_by(!!!group_tnt) |>
           dplyr::summarise(
             mean_tnt = mean({{ var }}, na.rm = T),
             nb_tnt = dplyr::n(),
@@ -739,7 +739,7 @@ prepare_data <- function(
         }
 
         if ("plot_id" %in% colnames(mean_tnt)) {
-          mean_tnt %>%
+          mean_tnt |>
             dplyr::rename(tnt_id = plot_id) -> mean_tnt
         }
 
@@ -751,8 +751,8 @@ prepare_data <- function(
             names(mean_tnt),
             c("tnt_id", "mean_tnt", "nb_tnt")
           )
-          mean_tnt %>%
-            dplyr::group_by(across(all_of(cols_to_group))) %>%
+          mean_tnt |>
+            dplyr::group_by(across(all_of(cols_to_group))) |>
             dplyr::summarise(
               mean_tnt = mean(mean_tnt, na.rm = T),
               .groups = "drop"
@@ -772,7 +772,7 @@ prepare_data <- function(
               tmp_data,
               mean_tnt,
               by = c("clean_id", "calculation")
-            ) %>%
+            ) |>
               dplyr::select(-clean_id)
           } else {
             data <- merge(data, mean_tnt)
@@ -781,8 +781,8 @@ prepare_data <- function(
           data$mean_tnt = as.numeric(mean_tnt$mean_tnt)
         }
 
-        resume <- data %>%
-          dplyr::group_by(!!!group_syms) %>%
+        resume <- data |>
+          dplyr::group_by(!!!group_syms) |>
           dplyr::reframe(
             mean_tnt = mean(mean_tnt),
             value = efficacy({{ var }}, value_tnt = mean_tnt),
@@ -790,8 +790,8 @@ prepare_data <- function(
           )
       } else {
         # end of efficacy case
-        resume <- data %>%
-          dplyr::group_by(!!!group_syms) %>%
+        resume <- data |>
+          dplyr::group_by(!!!group_syms) |>
           dplyr::summarise(
             value = funs[[i]]({{ var }}),
             nb = sum(!is.na({{ var }})), #dplyr::n(),
@@ -810,7 +810,7 @@ prepare_data <- function(
       } else {
         names(funs)[i]
       }
-      resume %>%
+      resume |>
         dplyr::mutate(
           calculation = if ("calculation" %in% colnames(.))
             paste(default_name, calculation) else default_name

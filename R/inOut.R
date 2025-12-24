@@ -19,7 +19,7 @@
 #'
 #' @export
 save_data_to_excel <- function(combined_data, excel_data_trial_path) {
-  # Extraire le chemin, nom et extension
+  # Extract the path, name, and extension
   dir <- dirname(excel_data_trial_path)
   base <- tools::file_path_sans_ext(basename(excel_data_trial_path))
   ext <- tools::file_ext(excel_data_trial_path)
@@ -430,7 +430,6 @@ load_data_sheets <- function(self) {
 #' @return Invisibly returns the full path to the exported Excel file.
 #'
 #' @export
-
 export_data_sheets <- function(self) {
   wb <- openxlsx2::wb_load(self$excel_data_trial)
   added_sheets <- vector()
