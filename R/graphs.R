@@ -261,6 +261,7 @@ plot_xpheat <- function(
 #' @param show_errorbar display of error bars
 #' @param show_data display data points
 #' @param short_names to have shorter names for fill removing the last part of the string after the last space occurence
+#' @param factor_choice character. Name of the factor to plot. If NULL only the first factor is used
 #' @param ... other parameters for labs (title, x, y,fill)
 #'
 #' @return a barplot
@@ -305,6 +306,7 @@ plot_xpbar <- function(
   show_errorbar = TRUE,
   show_data = TRUE,
   short_names = TRUE,
+  factor_choice = NULL,
   ...
 ) {
   # local binding
@@ -327,8 +329,25 @@ plot_xpbar <- function(
   ## import stats in the function env
   stats <- self$stats[[stats]]
   data2plot <- stats$df.grp_means
-  # original data
 
+  # selection of factor to plot
+  if(!is.null(factor_choice)) {
+    factor_choice <- as.character(factor_choice) # force to character
+    if(length(intersect(data2plot$factor,factor_choice))==0) {
+      message("factor not found. please choose between:",paste(unique(data2plot$factor),collapse=","))
+      factor_choice <- NULL
+      } else {
+      data2plot <- data2plot[data2plot$factor %in% factor_choice,]
+      }
+  }
+
+  if(is.null(factor_choice)) {
+    tab <- table(data2plot$factor)
+    max_level <- names(tab)[tab == max(tab)] # maximal occurence of factor
+    data2plot <- data2plot[data2plot$factor %in% max_level,]
+  }
+
+  # original data
   data_points <- self$prepared_data[[stats$prep_data]]
 
   ## if stats was not calculated on a calculation
@@ -343,15 +362,17 @@ plot_xpbar <- function(
   ## remonve tnt if show_tnt = false
   if (!show_tnt) {
     data2plot %>%
-      dplyr::filter(!if_any(everything(), ~ grepl(code_tnt, .))
+      dplyr::filter(!dplyr::if_any(dplyr::everything(), ~ grepl(code_tnt, .))
       ) -> data2plot
     data_points %>%
-      dplyr::filter(!if_any(everything(), ~ grepl(code_tnt, .))
+      dplyr::filter(!dplyr::if_any(dplyr::everything(), ~ grepl(code_tnt, .))
       ) -> data_points
   }
 
   ## test value
-  ann_text <- stats$df.stats
+  stats$df.stats %>%
+    dplyr::filter(calculation %in% unique(data2plot$calculation)) -> ann_text
+
 
   ## if choice calculation not null
   if (!is.null(calculation_choices)) {
