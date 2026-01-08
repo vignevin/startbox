@@ -616,6 +616,9 @@ load_meteo <- function(self) {
 
     meteo <- meteo[, dplyr::coalesce(base::colnames(meteo), "") != ""]
 
+    ## harmonize col types according to dictionary
+    meteo <- harmonize_column_types(meteo, dictionary = self$dictionary)
+
     if (nrow(meteo) > 0) {
       self$meteo <- meteo
       message("✅ Sheet 'meteo' loaded into self$meteo")
