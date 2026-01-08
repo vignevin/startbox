@@ -1,3 +1,42 @@
+#' user_data
+#'
+#' An R6 class for managing trial data
+#'
+#' @description
+#' `user_data` encapsulates the data and metadata associated with a trial.
+#'
+#' @details
+#' This class uses the R6 paradigm (mutable objects).
+#'
+#' @docType class
+#' @keywords internal
+#'
+#' @section Fields:
+#' \describe{
+#'   \item{name}{`character` name of the user_data object, by default "user_data".}
+#'   \item{excel_data_trial}{`character` path to the current Excel file used for import/export operations.}
+#'   \item{obs_data}{A named `list` of data.frames, each corresponding to a sheet or file containing observation data}
+#'   \item{metadata}{A `list` storing metadata tables, such as "placette", "modalite"}
+#'   \item{plot_tnt_association}{A `list` storing association tables between plot and TNT}
+#'   \item{prepared_data}{A `list` storing prepared_data tables ready for stats analysis as produced by the function prepare_data()}
+#'   \item{stats}{A `list` storing stats results as results of the function stats_tests()}
+#'   \item{traceability}{A `data.frame` storing a log of all operations performed on the data (import, export, update, etc.).}
+#'   \item{dictionary}{A `data.frame` storing the data dictionary}
+#'   \item{meteo}{A `data.frame` storing the meteo data}
+#' }
+#'
+#' @section Methods:
+#' \describe{
+#'   \item{initialize()}{Initializes a new `user_data` object}
+#'   \item{add_metadata()}{Adds or updates a metadata element to the `user_data` object}
+#'   \item{add_obs()}{Adds or updates a data element to the `user_data` object}
+#'   \item{show_obs_data()}{Displays the first few rows of each observation dataset stored in the `user_data` object}
+#'   \item{log_trace()}{Adds a new entry to the `traceability` log stored in the `user_data` object}
+#' }
+#'
+#' @name user_data
+#' @importFrom R6 R6Class
+#' @export
 user_data <- R6::R6Class(
   "UserData",
   public = list(
