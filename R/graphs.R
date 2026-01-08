@@ -20,26 +20,26 @@
 #' @param ... other parameters for labs (title, x, y,fill, caption). see ?ggplot2::labs()
 #'
 #' @return A ggplot2 heatmap object.
-#' 
+#'
 #' @examples
 #' # example code
 #' \dontrun{
-#' 
+#'
 #' # Before creating the graph, it is necessary to have compiled the statistics.
 #' prepare_data(mydata, df = "data_G1")
 #' test_stats(mydata, prep_data = "prp1_data_G1")
-#' 
+#'
 #' # 3. Generating the heatmap
 #' plot_xpheat(mydata, stats = "prp1_data_G1")
-#' 
+#'
 #' # Example with residual calculation and selection of specific variables
-#' plot_xpheat(mydata, 
-#'             stats = "prp1_data_G1", 
+#' plot_xpheat(mydata,
+#'             stats = "prp1_data_G1",
 #'             calculation_choices = c("FA UN_BER_PC", "IA UN_BER_PC"),
 #'             resids = TRUE,
 #'             title = "Carte d'intensité des maladies (Résidus)")
 #' }
-#' 
+#'
 #'
 #' @details
 #' - Aggregates values by `plot_id`, taking the mean when multiple observations exist.
@@ -264,23 +264,23 @@ plot_xpheat <- function(
 #' @param ... other parameters for labs (title, x, y,fill)
 #'
 #' @return a barplot
-#' 
+#'
 #' @examples
 #' # example code
-#' 
+#'
 #' \dontrun{
-#' 
+#'
 #' # Before creating the graph, it is necessary to have compiled the statistics.
 #' prepare_data(mydata, df = "data_G1")
 #' test_stats(mydata, prep_data = "prp1_data_G1")
-#' 
-#' # 3. Generating the barplot 
+#'
+#' # 3. Generating the barplot
 #' plot_xpbar(mydata, stats = "prp1_data_G1")
-#' 
+#'
 #' # Custom example with data points and error bars
-#' plot_xpbar(mydata, 
-#'            stats = "prp1_data_G1", 
-#'            show_data = TRUE, 
+#' plot_xpbar(mydata,
+#'            stats = "prp1_data_G1",
+#'            show_data = TRUE,
 #'            show_errorbar = TRUE,
 #'            bar_color = c("#d9f0d3", "#1b7837"),
 #'            )
@@ -550,41 +550,41 @@ plot_xpbar <- function(
 #' rainfall exceeded 5 mm (vertical labels aligned below the axis).
 #'
 #' @param self A `user_data` R6 object containing a `meteo` data.frame
-#' @param date_debut Optional start date for filtering the data (format `YYYY-MM-DD` or `DD/MM/YYYY`).
-#' @param date_fin Optional end date for filtering the data.
-#' @param afficher_dates Logical, default `TRUE`. If `TRUE`, adds date labels above rainfall bars where `rain_mm > 5`.
-#' @param afficher_traitements Logical, default `TRUE`. If `TRUE`, draws treatment markers using unique dates found in `self$metadata$ppp$p_app_date` within the filtered range.
-#' @param afficher_observations Logical, default `TRUE`. If `TRUE`, draws observation markers using unique `observation_date` values merged from all data frames in `self$obs_data` within the filtered range.
+#' @param start_day Optional start date for filtering the data (format `YYYY-MM-DD` or `DD/MM/YYYY`).
+#' @param end_day Optional end date for filtering the data.
+#' @param rain_date_labels Logical, default `TRUE`. If `TRUE`, adds date labels above rainfall bars where `rain_mm > 5`.
+#' @param ppp_marks Logical, default `TRUE`. If `TRUE`, draws treatment markers using unique dates found in `self$metadata$ppp$p_app_date` within the filtered range.
+#' @param obs_marks Logical, default `TRUE`. If `TRUE`, draws observation markers using unique `observation_date` values merged from all data frames in `self$obs_data` within the filtered range.
 #'
 #'
 #' @return A `ggplot` object representing the ombrothermic chart.
 #' The used data (after cleaning and filtering) is attached as an attribute `"data_used"`.
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' # example code
 #' # where mydata is the object into which the user_data class has been loaded
 #' mydata <- user_data$new(trial_file = "path to our trial file")
-#' 
-#' plot_meteo(mydata, 
-#'    date_debut = "01/04/2025", 
-#'    date_fin = "30/07/2025", 
-#'    afficher_dates = FALSE)
+#'
+#' plot_meteo(mydata,
+#'    start_day = "01/04/2025",
+#'    end_day = "30/07/2025",
+#'    rain_date_labels = FALSE)
 #' }
 #'
 #' @export
-plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates = TRUE, afficher_traitements = TRUE, afficher_observations = TRUE) {
-  
+plot_meteo <- function(self, start_day = NULL, end_day = NULL, rain_date_labels = TRUE, ppp_marks = TRUE, obs_marks = TRUE) {
+
   if (is.null(self$meteo) || nrow(self$meteo) == 0) {
     stop("⚠️ No weather data found in self$meteo", call. = FALSE)
   }
   if (!check_daily_meteo(self)) {
     stop("⏱️ Hourly data detected in 'meteo_datetime'.", call. = FALSE)
   }
-  
+
   df <- self$meteo
   names(df) <- tolower(names(df))
-  
+
   # --- Minimum required columns: meteo_datetime + at least rain OR at least one Temperature
   if (!("meteo_datetime" %in% names(df))) {
     stop("Column 'meteo_datetime' missing.", call. = FALSE)
@@ -594,15 +594,15 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
   has_tmean<- "air_tmean_celsius" %in% names(df)
   has_tmax <- "air_tmax_celsius"  %in% names(df)
   has_any_temp <- has_tmin || has_tmean || has_tmax
-  
+
   if (!has_rain && !has_any_temp) {
     stop("No usable series: neither 'rain_mm' nor temperature columns.", call. = FALSE)
   }
-  
+
   dt <- to_posix(df$meteo_datetime)
   if (any(is.na(dt))) stop("Unable to convert 'meteo_datetime' to date/time.", call. = FALSE)
   df$meteo_datetime <- as.Date(dt)
-  
+
   # --- Conditional numeric conversion
   to_num <- function(x) {
     if (is.numeric(x)) return(x)
@@ -614,25 +614,25 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
   if (has_tmin)  df$air_tmin_celsius  <- to_num(df$air_tmin_celsius)
   if (has_tmean) df$air_tmean_celsius <- to_num(df$air_tmean_celsius)
   if (has_tmax)  df$air_tmax_celsius  <- to_num(df$air_tmax_celsius)
-  
+
   # --- If Tmean is missing but Tmin & Tmax are present, calculate average
   if (!has_tmean && has_tmin && has_tmax) {
     df$air_tmean_celsius <- (df$air_tmin_celsius + df$air_tmax_celsius) / 2
     has_tmean <- TRUE
   }
-  
+
   # --- Date filtering
   formats_possibles <- c("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d")
-  if (!is.null(date_debut)) {
-    date_debut <- as.Date(date_debut, tryFormats = formats_possibles)
+  if (!is.null(start_day)) {
+    start_day <- as.Date(start_day, tryFormats = formats_possibles)
   }
-  if (!is.null(date_fin)) {
-    date_fin <- as.Date(date_fin, tryFormats = formats_possibles)
+  if (!is.null(end_day)) {
+    end_day <- as.Date(end_day, tryFormats = formats_possibles)
   }
-  if (!is.null(date_debut)) df <- dplyr::filter(df, meteo_datetime >= date_debut)
-  if (!is.null(date_fin))   df <- dplyr::filter(df, meteo_datetime <= date_fin)
+  if (!is.null(start_day)) df <- dplyr::filter(df, meteo_datetime >= start_day)
+  if (!is.null(end_day))   df <- dplyr::filter(df, meteo_datetime <= end_day)
   if (nrow(df) == 0) stop("No data found within the selected date range.", call. = FALSE)
-  
+
   # --- Cleaning / Controls
   if (has_rain) {
     df$rain_mm[df$rain_mm < 0] <- 0
@@ -640,14 +640,14 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
   if (has_tmin)  df$air_tmin_celsius[df$air_tmin_celsius < -50 | df$air_tmin_celsius > 70]    <- NA_real_
   if (has_tmean) df$air_tmean_celsius[df$air_tmean_celsius < -50 | df$air_tmean_celsius > 70] <- NA_real_
   if (has_tmax)  df$air_tmax_celsius[df$air_tmax_celsius < -50 | df$air_tmax_celsius > 70]    <- NA_real_
-  
+
   # --- Actual presence (not 100% NA)
   present_tmin  <- has_tmin  && any(!is.na(df$air_tmin_celsius))
   present_tmean <- has_tmean && any(!is.na(df$air_tmean_celsius))
   present_tmax  <- has_tmax  && any(!is.na(df$air_tmax_celsius))
   present_any_temp <- present_tmin || present_tmean || present_tmax
   present_rain <- has_rain && any(!is.na(df$rain_mm))
-  
+
   # --- X Axis (months)
   min_d <- min(df$meteo_datetime, na.rm = TRUE)
   max_d <- max(df$meteo_datetime, na.rm = TRUE)
@@ -655,9 +655,9 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
                       as.Date(format(max_d, "%Y-%m-01")),
                       by = "1 month")
   month_labels <- format(month_breaks, "%B")
-  
+
   seuil_pluie <- 5
-  rain_labels_df <- if (afficher_dates && present_rain) {
+  rain_labels_df <- if (rain_date_labels && present_rain) {
     df |>
       dplyr::filter(!is.na(rain_mm), rain_mm > seuil_pluie) |>
       dplyr::transmute(
@@ -668,26 +668,26 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
   } else {
     df[0, c("meteo_datetime")]
   }
-  
+
   # --- Treatment dates
   treat_df <- NULL
-  if (afficher_traitements && !is.null(self$metadata) && !is.null(self$metadata$ppp)) {
+  if (ppp_marks && !is.null(self$metadata) && !is.null(self$metadata$ppp)) {
     ppp <- self$metadata$ppp
     nms <- tolower(names(ppp))
     if ("p_app_date" %in% nms) {
       tdt <- to_posix(ppp[[ which(nms == "p_app_date") ]])
       tdt <- as.Date(tdt)
       tdt <- tdt[!is.na(tdt)]
-      if (!is.null(date_debut)) tdt <- tdt[tdt >= date_debut]
-      if (!is.null(date_fin))   tdt <- tdt[tdt <= date_fin]
+      if (!is.null(start_day)) tdt <- tdt[tdt >= start_day]
+      if (!is.null(end_day))   tdt <- tdt[tdt <= end_day]
       tdt <- unique(tdt)
       if (length(tdt) > 0) treat_df <- data.frame(meteo_datetime = sort(tdt))
     }
   }
-  
+
   # --- Plot construction
   p <- ggplot2::ggplot(df, ggplot2::aes(x = meteo_datetime))
-  
+
   # Rain layer
   if (present_rain) {
     # Ombrothermic scale if at least one Temperature is present
@@ -704,11 +704,11 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
       )
     }
   }
-  
+
   # Temperature layers (conditional)
   legend_vals <- c()
   legend_cols <- c()
-  
+
   if (present_tmin) {
     p <- p + ggplot2::geom_line(ggplot2::aes(y = air_tmin_celsius,  color = "Tmin (°C)"),
                                 linewidth = 0.9, na.rm = TRUE)
@@ -727,7 +727,7 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
     legend_vals <- c(legend_vals, "Tmax (°C)")
     legend_cols <- c(legend_cols, "Tmax (°C)" = "#cc3333")
   }
-  
+
   # Y Axes
   if (present_any_temp) {
     mm_max <- if (present_rain) max(df$rain_mm, na.rm = TRUE) else 0
@@ -748,7 +748,7 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
         expand = ggplot2::expansion(mult = c(0.05, 0.16))
       )
   }
-  
+
   p <- p +
     ggplot2::scale_x_date(breaks = month_breaks, labels = month_labels) +
     ggplot2::labs(title = "Weather (ombrothermic scale P = 2T)", x = NULL) +
@@ -760,9 +760,9 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
       plot.margin        = ggplot2::margin(b = 24, l = 6, r = 6, t = 6)
     ) +
     ggplot2::coord_cartesian(clip = "off")
-  
+
   # Rain labels above bars
-  if (afficher_dates && nrow(rain_labels_df) > 0) {
+  if (rain_date_labels && nrow(rain_labels_df) > 0) {
     p <- p + ggplot2::geom_text(
       data = rain_labels_df,
       mapping = ggplot2::aes(x = meteo_datetime, y = y, label = label),
@@ -770,7 +770,7 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
       vjust = -0.1, hjust = 0.5, angle = 0, size = 3, alpha = 0.95
     )
   }
-  
+
   # Position for treatments/observations
   tmax <- suppressWarnings(max(c(
     if (present_tmax)  df$air_tmax_celsius,
@@ -785,9 +785,9 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
   rng  <- max(1, tmax - tmin)
   y_top <- tmax + 0.08 * rng
   y_obs <- y_top - 0.06 * rng
-  
+
   # Add treatments
-  if (afficher_traitements && !is.null(treat_df)) {
+  if (ppp_marks && !is.null(treat_df)) {
     p <- p + ggplot2::geom_point(
       data = transform(treat_df, y = y_top, label = "Treatment"),
       mapping = ggplot2::aes(x = meteo_datetime, y = y, color = label),
@@ -798,15 +798,15 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
     legend_cols <- c(legend_cols, "Treatment" = "black")
     attr(p, "treatment_dates_used") <- treat_df$meteo_datetime
   }
-  
+
   # Add observations (all obs_data)
-  if (afficher_observations && !is.null(self$obs_data) && length(self$obs_data) > 0) {
+  if (obs_marks && !is.null(self$obs_data) && length(self$obs_data) > 0) {
     get_one <- function(d) {
       if (is.data.frame(d) && "observation_date" %in% names(d)) {
         dd <- as.Date(to_posix(d$observation_date))
         dd <- dd[!is.na(dd)]
-        if (!is.null(date_debut)) dd <- dd[dd >= date_debut]
-        if (!is.null(date_fin))   dd <- dd[dd <= date_fin]
+        if (!is.null(start_day)) dd <- dd[dd >= start_day]
+        if (!is.null(end_day))   dd <- dd[dd <= end_day]
         return(dd)
       }
       NULL
@@ -826,7 +826,7 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
       attr(p, "observation_dates_used") <- obs_df$meteo_datetime
     }
   }
-  
+
   # Legend: only what is present
   if (length(legend_vals) > 0) {
     p <- p + ggplot2::scale_color_manual(
@@ -837,7 +837,7 @@ plot_meteo <- function(self, date_debut = NULL, date_fin = NULL, afficher_dates 
   } else {
     p <- p + ggplot2::guides(color = "none")
   }
-  
+
   attr(p, "data_used") <- df
   p
 }
