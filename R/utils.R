@@ -425,10 +425,11 @@ getdataframe <- function(self = NULL,dfname = NULL) {
 #' date and date-time formats until all possible values are converted.
 #'
 #' @examples
+#' \dontrun{
 #' to_posix("2024-03-15 14:30")
 #' to_posix(c("15/03/2024", "2024-03-16 08:00"))
 #' to_posix(as.Date("2024-03-15"))
-#'
+#' }
 to_posix <- function(v) {
   if (inherits(v, "POSIXct")) return(v)
   if (inherits(v, "Date"))    return(as.POSIXct(v, tz = "UTC"))
@@ -466,7 +467,6 @@ to_posix <- function(v) {
 #' `TRUE` — if the dataset represents daily meteo data.
 #' `FALSE` — if the dataset contains hourly (or sub-daily) timestamps.
 #'
-#' @importFrom base as.POSIXct as.Date format suppressWarnings
 #'
 check_daily_meteo <- function(self) {
 
