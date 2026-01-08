@@ -83,7 +83,7 @@ plot_xpheat <- function(
   data2plot <- self$prepared_data[[stats$prep_data]]
 
   ## if stats was not calculated on a calculation
-  data2plot |>
+  data2plot %>%
     dplyr::filter(
       calculation %in% unique(stats$df.grp_means$calculation)
     ) -> data2plot
@@ -131,7 +131,7 @@ plot_xpheat <- function(
     data2plot,
     plot_x = as.numeric(plot_x),
     plot_y = as.numeric(plot_y)
-  ) |>
+  ) %>%
     dplyr::filter(!is.na(plot_x) & !is.na(plot_y))
 
   # grouping col
@@ -149,14 +149,14 @@ plot_xpheat <- function(
   }
 
   # Apply summarise
-  data_agg <- data2plot |>
-    dplyr::group_by(dplyr::across(dplyr::all_of(grp_cols))) |>
-    dplyr::summarise(!!!summary_expr, .groups = "drop") |>
-    dplyr::group_by(calculation) |>
+  data_agg <- data2plot %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(grp_cols))) %>%
+    dplyr::summarise(!!!summary_expr, .groups = "drop") %>%
+    dplyr::group_by(calculation) %>%
     dplyr::mutate(
       value_centered = Valeurs - mean(Valeurs, na.rm = TRUE),
       value_centered_reduced = value_centered / stats::sd(Valeurs, na.rm = TRUE)
-    ) |>
+    ) %>%
     dplyr::ungroup()
 
   if (nrow(data_agg) == 0) {
@@ -332,7 +332,7 @@ plot_xpbar <- function(
   data_points <- self$prepared_data[[stats$prep_data]]
 
   ## if stats was not calculated on a calculation
-  data_points |>
+  data_points %>%
     dplyr::filter(calculation %in% unique(data2plot$calculation)) -> data_points
 
   col_x <- which(colnames(data_points) == unique(data2plot$factor))
@@ -342,21 +342,11 @@ plot_xpbar <- function(
 
   ## remonve tnt if show_tnt = false
   if (!show_tnt) {
-    data2plot |>
-      dplyr::filter(
-        !apply(
-          .,
-          1,
-          function(row) any(grepl(code_tnt, row))
-        )
+    data2plot %>%
+      dplyr::filter(!if_any(everything(), ~ grepl(code_tnt, .))
       ) -> data2plot
-    data_points |>
-      dplyr::filter(
-        !apply(
-          .,
-          1,
-          function(row) any(grepl(code_tnt, row))
-        )
+    data_points %>%
+      dplyr::filter(!if_any(everything(), ~ grepl(code_tnt, .))
       ) -> data_points
   }
 
@@ -560,6 +550,7 @@ plot_xpbar <- function(
 #' @return A `ggplot` object representing the ombrothermic chart.
 #' The used data (after cleaning and filtering) is attached as an attribute `"data_used"`.
 #'
+#'
 #' @examples
 #' \dontrun{
 #' # example code
@@ -574,6 +565,10 @@ plot_xpbar <- function(
 #'
 #' @export
 plot_meteo <- function(self, start_day = NULL, end_day = NULL, rain_date_labels = TRUE, ppp_marks = TRUE, obs_marks = TRUE) {
+
+  # local binding
+  meteo_datetime <- rain_mm <- air_tmin_celsius <- air_tmean_celsius <- air_tmax_celsius <- y <- label <- NULL
+
 
   if (is.null(self$meteo) || nrow(self$meteo) == 0) {
     stop("⚠️ No weather data found in self$meteo", call. = FALSE)
@@ -735,7 +730,7 @@ plot_meteo <- function(self, start_day = NULL, end_day = NULL, rain_date_labels 
     p <- p +
       ggplot2::scale_y_continuous(
         name     = "Temperature (°C)",
-        labels   = scales::label_number(accuracy = 1),
+        labels   = function(x) formatC(x, format = "f", digits = 0),
         sec.axis = if (present_rain) ggplot2::sec_axis(~ . * 2, name = "Rain (mm)", breaks = breaks_mm_droit) else waiver(),
         expand   = ggplot2::expansion(mult = c(0.05, 0.16))
       )
@@ -744,7 +739,7 @@ plot_meteo <- function(self, start_day = NULL, end_day = NULL, rain_date_labels 
     p <- p +
       ggplot2::scale_y_continuous(
         name   = "Rain (mm)",
-        labels = scales::label_number(accuracy = 1),
+        labels = function(x) formatC(x, format = "f", digits = 0),
         expand = ggplot2::expansion(mult = c(0.05, 0.16))
       )
   }
