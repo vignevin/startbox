@@ -19,6 +19,7 @@ plot_xpbar(
   show_errorbar = TRUE,
   show_data = TRUE,
   short_names = TRUE,
+  factor_choice = NULL,
   ...
 )
 }
@@ -51,6 +52,8 @@ plot_xpbar(
 
 \item{short_names}{to have shorter names for fill removing the last part of the string after the last space occurence}
 
+\item{factor_choice}{character. Name of the factor to plot. If NULL only the first factor is used}
+
 \item{...}{other parameters for labs (title, x, y,fill)}
 }
 \value{
@@ -58,4 +61,26 @@ a barplot
 }
 \description{
 This function automatically generates a bar graph from observation or experimental data.
+}
+\examples{
+# example code
+
+\dontrun{
+
+# Before creating the graph, it is necessary to have compiled the statistics.
+prepare_data(mydata, df = "data_G1")
+test_stats(mydata, prep_data = "prp1_data_G1")
+
+# 3. Generating the barplot
+plot_xpbar(mydata, stats = "prp1_data_G1")
+
+# Custom example with data points and error bars
+plot_xpbar(mydata,
+           stats = "prp1_data_G1",
+           show_data = TRUE,
+           show_errorbar = TRUE,
+           bar_color = c("#d9f0d3", "#1b7837"),
+           )
+}
+
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/metrics.R
 \name{efficacy}
 \alias{efficacy}
-\title{calcul efficacy}
+\title{Calcul of efficacy according to the Abbott's formula}
 \usage{
 efficacy(value, value_tnt)
 }
@@ -15,8 +15,13 @@ efficacy(value, value_tnt)
 a vector of calculated efficacy
 }
 \description{
-This function calculate the treatment efficacy.
+This function calculate the treatment efficacy according to the Abbott formula (1925).
+Eff = ((value_tnt - value)/value_tnt) * 100
+with value_tnt : percentage of linving in the check (non treated) and value : percentage living in the treatment
+The Abbott formula is appropriate when dealing with infestation levels or live individuals in uniform pest or disease populations
 Efficacy is the level of reduction of target harmful organisms or damage caused by them to the plant,
 after application of a treatment, compared to an untreated control.
 Efficacy is expressed in percentage.
+Reference : Abbott, W.S. 1925. A method of computing the effectiveness of an insecticide. J. Econ. Entomol., 18:265-267.
+See also : Henderson and Tilton (1955) formula for non-uniform populations
 }

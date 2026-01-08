@@ -4,18 +4,12 @@
 \alias{harmonize_column_types}
 \title{Harmonize Column Types}
 \usage{
-harmonize_column_types(
-  df,
-  types_map = NULL,
-  dictionary_path = system.file("extdata", "star_dictionary.csv", package = "startbox")
-)
+harmonize_column_types(df, dictionary = NULL)
 }
 \arguments{
 \item{df}{The dataframe to harmonize.}
 
-\item{types_map}{(optional) predefined type mapping (otherwise it will load from a CSV).}
-
-\item{dictionary_path}{(optional) path to the CSV dictionary file if types_map is not provided.}
+\item{dictionary}{(optional) a data.frame with a least 2 cols 'nom' and 'Rclass'}
 }
 \value{
 A dataframe with harmonized column types.

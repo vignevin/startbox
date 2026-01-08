@@ -4,10 +4,12 @@
 \alias{incidence}
 \title{calculation of disease incidence}
 \usage{
-incidence(vecteur)
+incidence(vector, threshold = 0)
 }
 \arguments{
-\item{vecteur}{a numeric vector of disease severity observations in percentage}
+\item{vector}{a numeric vector of disease severity observations in percentage}
+
+\item{threshold}{threshold to calculate incidence, zero by default}
 }
 \value{
 a numeric value of incidence, in percent

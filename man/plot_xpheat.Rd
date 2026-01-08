@@ -51,3 +51,24 @@ using \code{plot_x} and \code{plot_y} coordinates and coloring according to a se
 \item Useful for visualizing spatial patterns of disease in experimental trials.
 }
 }
+\examples{
+# example code
+\dontrun{
+
+# Before creating the graph, it is necessary to have compiled the statistics.
+prepare_data(mydata, df = "data_G1")
+test_stats(mydata, prep_data = "prp1_data_G1")
+
+# 3. Generating the heatmap
+plot_xpheat(mydata, stats = "prp1_data_G1")
+
+# Example with residual calculation and selection of specific variables
+plot_xpheat(mydata,
+            stats = "prp1_data_G1",
+            calculation_choices = c("FA UN_BER_PC", "IA UN_BER_PC"),
+            resids = TRUE,
+            title = "Carte d'intensité des maladies (Résidus)")
+}
+
+
+}

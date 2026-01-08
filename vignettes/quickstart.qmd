@@ -82,8 +82,9 @@ Une fois les données chargées, il est nécessaire de les préparer avant analy
 ## Préparer les données à partir d'un jeu de données observation
 
 ```{r}
-prepare_data(mydata, df="data_G1")
+prepare_data(mydata, df="data_G1", prep_name = "default_G1")
 # df : le nom du dataframe à préparer)
+# prep_name : le nom du tableau de données en sortie
  
 ```
 
@@ -93,7 +94,8 @@ Ce cas de figure intervient généralement quand on souhaite calculer une effica
 
 ```{r}
 prepare_data(mydata,
-             df="prp1_data_G1", # le nom du dataframe à préparer 
+             df="default_G1", # le nom du dataframe à préparer
+             prep_name = "eff_G1", # nom du dataframe en sortie
              funs = list(efficacité = efficacy),  # calcul de l'efficacité
              tnt_mode = "block")
 ```
@@ -103,7 +105,7 @@ prepare_data(mydata,
 Les données préparées sont accessibles dans `mydata`, sous forme d'une liste `prepared_data`
 
 ```{r}
-head(mydata$prepared_data$prp2_prp1_data_G1)
+head(mydata$prepared_data$eff_G1)
 ```
 
 # Analyser les données
@@ -113,7 +115,7 @@ Une fois le jeu de données préparé, il est possible de réaliser l'analyse st
 ## Réaliser l'analyse
 
 ```{r}
-test_stats(mydata, prep_data = "prp2_prp1_data_G1")
+test_stats(mydata, prep_data = "eff_G1")
 
 ```
 
@@ -128,7 +130,7 @@ Les résultats des analyses statistiques sont stockées dans `mydata`, dans une 
 -   df.grp_means : une table avec les moyennes par modalités et les groupes statistiques
 
 ```{r}
-head(mydata$stats$prp2_prp1_data_G1$df.grp_means)
+head(mydata$stats$eff_G1$df.grp_means)
 ```
 
 # Afficher les graphiques
@@ -136,12 +138,12 @@ head(mydata$stats$prp2_prp1_data_G1$df.grp_means)
 ## Barplot
 
 ```{r}
-plot_xpbar(mydata,stat = "prp2_prp1_data_G1")
+plot_xpbar(mydata,stat = "eff_G1")
 
 ```
 
 ## Heat map
 
 ```{r}
-plot_xpheat(mydata,stat = "prp2_prp1_data_G1")
+plot_xpheat(mydata,stat = "eff_G1")
 ```
