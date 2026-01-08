@@ -115,6 +115,12 @@ test_stats <- function(
   # Remove NULL elements
   stat_list <- stat_list[!sapply(stat_list, is.null)]
 
+  ## if stat list is empty -> stop
+  if(length(stat_list)==0) {
+    message("sorry, non-computable statistics for your data")
+    return(NULL)
+  }
+
   ## combine all grp_means in one dataframe
   # Extract all 'grp_means' elements if they exist
   grp_means_list <- lapply(stat_list, function(x) x[["grp_means"]])
