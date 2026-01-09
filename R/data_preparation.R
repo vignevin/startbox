@@ -904,6 +904,7 @@ prepare_data <- function(
 #'
 #' @param file Path to the data leading to a csv file exported from Epicure (IFV Information system)
 #' @param skip_forecast Logical. If `TRUE` (default), the first 14 data rows are removed before processing (commonly forecast values).
+#' @export
 #'
 #' @return A standardized data.frame with consistent column names and structure.
 #'

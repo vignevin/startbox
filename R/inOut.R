@@ -211,7 +211,7 @@ load_metadata_sheets <- function(self) {
 
     # removing cols without names (NA or "")
     placette_data <- placette_data[,
-                                   dplyr::coalesce(colnames(placette_data), "") != ""
+      dplyr::coalesce(colnames(placette_data), "") != ""
     ]
 
     if (nrow(placette_data) > 0) {
@@ -247,7 +247,7 @@ load_metadata_sheets <- function(self) {
           sum(
             is.na(modalite_data$xp_trt_name) | modalite_data$xp_trt_name == ""
           ) >
-          0
+            0
         ) {
           message(
             "⚠️ some xp_trt_name are missing. xp_trt_code used instead. Please check your data file"
@@ -304,7 +304,6 @@ load_metadata_sheets <- function(self) {
     message("ℹ️ Sheet 'ppp' not found.")
   }
 }
-
 
 
 # Function to get and save the template Excel file
@@ -426,11 +425,12 @@ load_data_sheets <- function(self) {
 #' and logs all export operations in the traceability system.
 #'
 #' @param self A `user_data` R6 object containing observation data and the active Excel file path.
+#' @param update_mto if TRUE, the meteo sheet is updated. FALSE by default
 #'
 #' @return Invisibly returns the full path to the exported Excel file.
 #'
 #' @export
-export_data_sheets <- function(self) {
+export_data_sheets <- function(self, update_mto = FALSE) {
   wb <- openxlsx2::wb_load(self$excel_data_trial)
   added_sheets <- vector()
   for (i in seq_along(self$obs_data)) {
@@ -453,6 +453,26 @@ export_data_sheets <- function(self) {
       wb$add_data_table(sheet = sheetname, x = df)
       message("✅ Sheet added: ", sheetname)
       added_sheets <- c(added_sheets, sheetname)
+    }
+  }
+
+  # update meteo
+  if (update_mto) {
+    if (!is.data.frame(self$meteo)) {
+      message("no meteo data found, please check")
+    } else {
+      if (!"meteo" %in% wb$sheet_names) {
+        wb$add_worksheet(sheet = "meteo")
+      }
+      tables <- wb$get_tables(sheet = "meteo")
+      if(nrow(tables)>0) {
+        for (i in 1:nrow(tables))
+        {
+        wb$remove_tables(sheet = "meteo",table = tables$tab_name[i])
+        }
+      }
+      wb$add_data_table(sheet = "meteo", x = self$meteo)
+      message("meteo data updated")
     }
   }
 
@@ -677,6 +697,12 @@ import_pom_csv <- function(
   if (!update %in% c("new", "all")) {
     stop("Invalid value for `update`")
   }
+
+  ## if meteo missing
+  if (!"meteo" %in% names(self)) {
+    self$meteo <- NULL
+  }
+
   ## number of rows added
   ## check, read and standardise pom file
   df_mto <- standardise_pom_csv(file = filepath, skip_forecast = skip_forecast)
@@ -685,13 +711,6 @@ import_pom_csv <- function(
     nrows_added <- 0
     ## check if meteo alread exists in self and if it contains at least a col `meteo_datetime`
     if (update == "new") {
-      if (is.null(self$meteo)) {
-        warning(
-          "Warning : no previous meteo data found in self. All data are imported"
-        )
-        self$meteo <- df_mto
-        nrows_added <- nrows_df_mto
-      }
       if (!is.null(self$meteo)) {
         if (!("meteo_datetime" %in% names(self$meteo))) {
           message(
@@ -710,6 +729,12 @@ import_pom_csv <- function(
             message("No NEW rows to import")
           }
         }
+      } else {
+        warning(
+          "Warning : no previous meteo data found in self. All data are imported"
+        )
+        self$meteo <- df_mto
+        nrows_added <- nrows_df_mto
       }
     }
     if (update == "all") {
