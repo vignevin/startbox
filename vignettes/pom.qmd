@@ -1,0 +1,76 @@
+---
+title: "Importation des données météo POM"
+format:
+  html:
+    code-copy: true
+    code-overflow: wrap
+vignette: >
+  %\VignetteIndexEntry{topvigne}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+Les données météo peuvent être importées à partir d'un csv généré par le module POM (Point d'Observation Météo) d'EPICURE. 
+*Attentions, EPICURE n'est accessible qu'en interne à l'IFV*
+
+Le package startbox permet leur formatage et importation directement dans le fichier Excel standard.
+
+## Initialisation de `user_data` dans R
+
+```{r}
+#| label: setup
+library(startbox)
+# Création d'un objet avec fichier Excel modèle vide fourni avec le package
+mydata <- user_data$new(trial_file = system.file("extdata","template.xlsx",package="startbox"))
+```
+
+Si vous avez déjà un fichier Excel standard, il suffit de donner le chemin d'accès vers ce fichier au paramètre `trial_file`. La fonction `file.choose()` est très pratique pour une sélection interactive
+
+```{r eval= FALSE}
+mydata <- user_data$new(trial_file = file.choose()) ## ici la sélection du fichier se fait de manière interactive
+```
+
+## Importer les données POM dans R
+
+La fonction `standardise_topvigne_csv` qui permet de transformer et standardiser les données collectées avec Topvigne.
+
+```{r}
+#| label: load_obs
+# ici le fichier est un fichier exemple fourni avec le package
+POM_file <- system.file("extdata","30_BELLEGARDE_MARINE.csv",package="startbox")
+
+# Importation du fichier dans mydata
+import_pom_csv(mydata, filepath =  POM_file)
+head(mydata$meteo) ## afficher les premières lignes du dataframe
+```
+
+De la même manière que précédemment, une sélection interactive peut-être réalisée avec `file_path = file.choose()`.
+
+## Graphique de données météo
+
+Une fois les données importées dans votre objet `user_data`, il est possible de les analyser et visualiser.
+
+```{r}
+#| label: plot_mto
+
+startbox::plot_meteo(mydata,start_day = "01/04/2024",end_day = "30/08/2024")
+```
+
+## Exporter le fichier
+
+La fonction `export_data_sheets` permet de créer une nouvelle version du fichier Excel en y ajoutant les feuilles data présentes dans l'objet. Le fichier est exporté avec un horodatage automatique.
+
+```{r}
+#| include: false
+#| 
+export_data_sheets(mydata, update_mto = TRUE)
+```
+
+
+::: callout-important
+Un fichier Excel ouvert ne peut pas être chargé ni modifié par {startbox} : n'oubliez-pas de fermer vos fichiers avant de lancer les fonctions `user_data$new()` ou `export_data_sheets()`
+:::

@@ -1,0 +1,285 @@
+---
+title: "Modèle Excel"
+format:
+  html:
+    code-copy: true
+    code-overflow: wrap
+vignette: >
+  %\VignetteIndexEntry{topvigne}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: '#>'
+---
+
+Le modèle Excel STAR est un classeur Excel permettant de standardiser les données collectées lors des expérimentations en protection des cultures.
+
+Il s'appuie sur un vocabulaire défini et harmonisé entre expérimentateurs. Les données sont structurées en tables cohérentes avec un modèle de données explicite.
+
+Cette standardisation est nécessaire pour faciliter le partage, la mise en commun (méta-analyse) et la réutilisation des données. Elle permet aussi d'automatiser le traitement des données (analyses statistiques, visualisation, reporting).
+
+Le [modèle vierge](https://github.com/vignevin/startbox/blob/main/inst/extdata/template.xlsx?raw=true) et un [exemple pré-rempli](https://github.com/vignevin/startbox/blob/main/inst/extdata/standard_exemple.xlsx?raw=true) sont disponibles en ligne.
+
+Le modèle permet d'organiser les données suivantes :
+
+-   l'expérimentation : description et objectifs poursuivis
+-   la parcelle : cépage, localisation
+-   le plan d'expérience : modalité et placettes
+-   les conditions météo
+-   la traçabilité des traitements et des évènements survenus lors de l'essai
+-   les données d'observation collectées
+
+L'ensemble est accompagné d'un dictionnaire de données avec définitions, unités et types des valeurs attendues (texte, nombre, date).
+
+## Description de l'expérimentation
+
+La description de l'expérimentation est réalisé dans la feuille `expe` (@tbl-essai). La notion d'expérimentation est équivalente à celle d'un essai mené en protection phytosanitaire.
+
+Les champs `expe_id` et `expe_obj` sont **obligatoires**. `expe_id` est l'identifiant de l'essai, à défaut son nom.
+
+::: callout-tip
+Une bonne pratique est d'identifier un essai selon une convention de nommage qui peut-être le site (ou plateforme), le nom de l'essai et l'année de réalisation, par exemple : IFV30_teisso_2024.
+:::
+
+Il est possible de stocker les données de plusieurs expérimentations, à condition qu'elles soient réalisées sur **la même parcelle agricole** :
+
+-   cas d'expérimentations différentes réalisées sur plusieurs années
+-   cas de plusieurs expérimentations réalisées la même année, sur une même parcelle agricole (plateforme d'essais)
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-essai
+#| tbl-cap: Champs descriptifs de l'expérimentation (ou essai)
+
+library(openxlsx2)
+library(dplyr)
+
+template <- system.file("extdata","template.xlsx",package="startbox")
+wb_template <- openxlsx2::wb_load(template)
+sheets <- openxlsx2::wb_get_sheet_names(wb_template)
+dico <- wb_to_df(wb_template,sheet = "dictionary")
+df <- wb_to_df(wb_template,sheet = "expe")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+
+
+```
+
+::: callout-note
+Les champs obligatoires indiqués [en gras et en jaune]{style="color:#FFD700; font-weight:bold;"} dans chaque feuille du fichier modèle.
+:::
+
+## Le contexte expérimental
+
+### Description de la parcelle
+
+La parcelle sur laquelle ont lieu la ou les expérimentations est décrite dans la feuille du même nom (@tbl-field). Aucune donnée n'est obligatoire ici, mais la localisation de la parcelle est recommandée. Le cépage est sélectionnable dans une liste déroulante, si cette liste s'avère incomplète, il est possible de saisir librement. Dans ce cas, faites une demande au gestionnaire du fichier.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-field
+#| tbl-cap: Champs descriptifs de la parcelle
+
+df <- wb_to_df(wb_template,sheet = "parcelle")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+
+```
+
+### Les conditions climatiques
+
+Les conditions climatiques dans lesquelles s'est déroulée l'expérimentation sont stockées dans la feuille `meteo`. Les données peuvent être journalières ou horaires selon les cas. Certaines variables sont proposées par défaut (@tbl-mto), mais ne sont pas nécessairement toutes renseignées. De même, il est possible d'ajouter de nouvelles variables. Il est possible de supprimer les colonnes inutilisées.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-mto
+#| tbl-cap: Champs descriptifs des conditions météorologiques
+
+df <- wb_to_df(wb_template,sheet = "meteo")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+
+```
+
+::: callout-important
+Si vous ajoutez des variables, pensez à compléter le dictionnaire de données !
+:::
+
+## Le plan d'expérience
+
+### Les modalités
+
+Les traitements expérimentaux, communément appelés modalités, sont décrits dans la feuille `modalite` (@tbl-moda).
+
+Ils sont associés à une expérimentation : en cas de partage de certaines modalités entre différents essais, il faudra **dupliquer la modalité** pour avoir une déclaration complète des modalités suivies dans chaque essai.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-moda
+#| tbl-cap: Champs descriptifs des traitements expérimentaux
+
+df <- wb_to_df(wb_template,sheet = "modalite")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+```
+
+### Les placettes
+
+La feuille `placette` permet de déclarer les placettes et leur position sur la parcelle (@tbl-plot). Une placette est un ensemble de plants de vigne qui reçoivent un même traitement expérimental. Autrement dit, ce sont les **unités expérimentales** de l'essai.
+
+Chaque placette doit avoir un **identifiant unique**, qui ne peut pas être répétés dans la parcelle. On peut par exemple faire une combinaison du code du bloc et du code de la modalité, (à condition de n'avoir qu'une répétition par bloc !).
+
+::: callout-tip
+Pour numéroter les placettes (ou unités expérimentales), il est recommandé d'adopter un code alphanumérique du type P1, P2, ..., Pn avec une numérotation incrémentale. Cela évite d'être influencé dans les notations.
+:::
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-plot
+#| tbl-cap: Champs descriptifs des placettes
+
+df <- wb_to_df(wb_template,sheet = "placette")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+```
+
+::: callout-tip
+Copier-coller dans cette feuille une image du plan d'expérience pour le visualiser facilement. Il est possible de générer cette image avec le package R `startbox`.
+:::
+
+## Traçabilité et évènements
+
+### Les traitements phytosanitaires
+
+Chaque traitement phytosanitaire appliqué doit être enregistré dans la feuille `ppp` (@tbl-ppp) La saisie se fait par modalité. En cas de traitement de couverture, concernant toutes les modalités, il est nécessaire de dupliquer les lignes pour déclarer le traitement de couverture pour chaque modalité.
+
+Le nom du produit et son numéro d'AMM peuvent être trouvés sur le site [e-phy](https://ephy.anses.fr/).
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-ppp
+#| tbl-cap: Champs descriptifs des traitements réalisés
+
+df <- wb_to_df(wb_template,sheet = "ppp")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+```
+
+### Les évènements
+
+La feuille `evenement` (@tbl-events) permet d'enregistrer toute sorte d’évènements pouvant survenir au cours de l'essai selon les différents types suivants :
+
+-   accident climatique : un accident de type gel, grêle...
+-   incident technique : tout problème pouvant affecter la bonne conduite de l'expérimentation
+-   inoculation : opération d'inoculation, en particulier pour les expérimentations en plateforme de brumisation inoculée avec du mildiou
+-   note : toute note ou remarque utile
+-   observation : action d'observation réalisé sur l'expérimentation.
+
+Le champ `event_description` permet de préciser la nature de l'évènement, et les éventuelles implication pour l'essai.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-events
+#| tbl-cap: Champs descriptifs des évenements
+
+df <- wb_to_df(wb_template,sheet = "evenement")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+```
+
+### La traçabilité du fichier
+
+Les actions sur le fichier sont elles-mêmes enregistrées dans une feuille dédiée à la traçabilité, nommée `suivi_data` (@tbl-log). Ces actions sont enregistrées soit manuellement par l'opérateur, soit automatiquement en cas de manipulation du fichier via le package `startbox`.
+
+Le principe est de décrire la source des données, la nature de l'action effectuée, par qui et quand, et les données résultantes.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-log
+#| tbl-cap: Champs descriptifs des actions sur le fichier
+
+df <- wb_to_df(wb_template,sheet = "suivi_data")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+```
+
+## Les données observées
+
+Les données observées sont enregistrées dans une ou plusieurs feuilles du classeur. Le nom d'une feuille de donnée doit **obligatoirement** commencer par le préfixe **`data_.`** Dans le cas contraire, elle ne sera pas lue par le package `startbox`.
+
+Chaque observation doit être associée à une placette `plot_id`, est réalisée à une date et un stade phénologique donné, et associé à une ou plusieurs variables observées (@tbl-data).
+
+Les stades phénologiques sont déclarés dans l'échelle BBCH.
+
+Les variables doivent être déclarées dans le dictionnaire de données. Certaines sont déjà enregistrées par défaut dans ce dictionnaire.
+
+```{r}
+#| echo: false
+#| warning: false
+#| label: tbl-data
+#| tbl-cap: Champs descriptifs des feuilles de données
+
+df <- wb_to_df(wb_template,sheet = "data_template")
+
+dico %>%
+  filter(dico$nom %in% colnames(df)) %>%
+  arrange(order(colnames(df))) %>%
+  select(nom,description_fr) %>%
+  knitr::kable()
+```
+
+## Le dictionnaire de données
+
+Le dictionnaire de données est dans la feuille `dictionary`. Le principe est de décrire toutes les colonnes (variables) existantes dans le fichier. Chaque colonne est décrite par :
+
+-   nom : son nom de colonne
+-   description_fr : une description en français expliquant son contenu
+-   trait : dans le cas d'une variable, le trait associé à la variable. Le trait est la caractéristique observée sur une entité, par exemple la hauteur de plante.
+-   method : la méthode de mesure ou d'observation
+-   unit : l'unité dans laquelle est exprimée la variable
+-   Rclass : sa classe dans l'environnement R (character, numeric, date, integer)
+-   uri : l'identifiant de type URI de la variable
+-   is_variable : s'il s'agit d'une variable mesurée (ou observée)
+-   has_eloa_class : la classe associée de l'entité décrite par le champ.
