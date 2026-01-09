@@ -69,11 +69,12 @@ usethis::use_readme_rmd()
 usethis::use_vignette("quickstart.qmd")
 
 # update version if necessary
-usethis::use_version()
+usethis::use_version("minor")
 
 ## creer site
 usethis::use_pkgdown()
-pkgdown::clean_site()
+pkgdown::clean_site(force=TRUE)
+## SINON : suppression manuelle de \docs
 pkgdown::build_site(override = list(destination = "docs"))
 usethis::use_pkgdown_github_pages()
 
