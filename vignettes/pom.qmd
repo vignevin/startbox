@@ -5,7 +5,7 @@ format:
     code-copy: true
     code-overflow: wrap
 vignette: >
-  %\VignetteIndexEntry{topvigne}
+  %\VignetteIndexEntry{pom}
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 knitr:
