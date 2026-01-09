@@ -4,10 +4,12 @@
 \alias{export_data_sheets}
 \title{Export observation sheets into a new Excel file version}
 \usage{
-export_data_sheets(self)
+export_data_sheets(self, update_mto = FALSE)
 }
 \arguments{
 \item{self}{A \code{user_data} R6 object containing observation data and the active Excel file path.}
+
+\item{update_mto}{if TRUE, the meteo sheet is updated. FALSE by default}
 }
 \value{
 Invisibly returns the full path to the exported Excel file.
