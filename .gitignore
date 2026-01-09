@@ -28,8 +28,6 @@ vignettes/*.pdf
 *.knit.md
 # R Environment Variables
 .Renviron
-# pkgdown site
-docs/
 # translation temp files
 po/*~
 # RStudio Connect folder
@@ -39,6 +37,5 @@ startbox.Rproj
 misc/biovimed_teissonniere_2024.xlsx
 inst/doc
 **/.quarto/
-docs
 /doc/
 /Meta/
