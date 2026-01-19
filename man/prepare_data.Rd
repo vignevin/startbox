@@ -13,7 +13,7 @@ prepare_data(
   filters = NULL,
   code_tnt = "TNT",
   raw = FALSE,
-  tnt_mode = "all",
+  tnt_mode = c("block", "all", "nearest", "user"),
   add_plot_desc = TRUE,
   flex = NULL,
   add_trt_desc = TRUE,

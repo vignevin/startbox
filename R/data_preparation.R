@@ -483,20 +483,20 @@ resume_pivot_wider <- function(df_resume) {
 #' @importFrom dplyr ensym syms filter group_by summarise n rename bind_rows select if_any everything
 
 prepare_data <- function(
-    self,
-    df,
-    var_cols = NULL,
-    group_cols = "plot_id",
-    funs = list(intensite = intensity, frequence = incidence),
-    filters = NULL,
-    code_tnt = "TNT",
-    raw = FALSE,
-    tnt_mode = c("block","all","nearest","user"),
-    add_plot_desc = TRUE,
-    flex = NULL,
-    add_trt_desc = TRUE,
-    prep_name = NULL,
-    prep_desc = NULL
+  self,
+  df,
+  var_cols = NULL,
+  group_cols = "plot_id",
+  funs = list(intensite = intensity, frequence = incidence),
+  filters = NULL,
+  code_tnt = "TNT",
+  raw = FALSE,
+  tnt_mode = c("block", "all", "nearest", "user"),
+  add_plot_desc = TRUE,
+  flex = NULL,
+  add_trt_desc = TRUE,
+  prep_name = NULL,
+  prep_desc = NULL
 ) {
   # local binding
   calculation <- plot_id <- . <- value <- nb <- clean_id <- NULL
@@ -562,7 +562,6 @@ prepare_data <- function(
   data <- apply_filters(self, data, filters, flex)
   if (is.null(data)) return(NULL)
 
-
   # convert column argument to symbol
   vars <- dplyr::syms(var_cols)
   group_syms <- dplyr::syms(group_cols)
@@ -604,16 +603,17 @@ prepare_data <- function(
 
     data_resume <- data.frame()
     for (i in 1:length(funs)) {
-      if (identical(funs[[i]], startbox::efficacy)) {   ## START for EFFICACY
+      if (identical(funs[[i]], startbox::efficacy)) {
+        ## START for EFFICACY
         # filter data for tnt rows
         data %>%
-          dplyr::filter(plot_id %in% get_tnt_ids_from_association(df_tnt = df_tnt)
+          dplyr::filter(
+            plot_id %in% get_tnt_ids_from_association(df_tnt = df_tnt)
           ) -> data_tnt_filtered
         if (nrow(data_tnt_filtered) == 0) {
           message("sorry, no tnt found in data for efficacy calculation")
           return(NULL)
         }
-
 
         ## calcul of tnt mean by group_tnt
         data_tnt_filtered %>%
@@ -660,7 +660,7 @@ prepare_data <- function(
             tmp_data <- data
             tmp_data$clean_id <- harmonize_plot_id_format(tmp_data$plot_id) # harmonize plot_id
             tmp_data <- tmp_data[,
-                                 !names(tmp_data) %in% c("plot_id", "block_code")
+              !names(tmp_data) %in% c("plot_id", "block_code")
             ] ## removing plot_id
             # join data and plot description
             data <- dplyr::left_join(
@@ -683,7 +683,9 @@ prepare_data <- function(
             value = efficacy({{ var }}, value_tnt = mean_tnt),
             nb = sum(!is.na({{ var }})) #dplyr::n()
           ) %>%
-          dplyr::filter(!plot_id %in% get_tnt_ids_from_association(df_tnt = df_tnt))
+          dplyr::filter(
+            !plot_id %in% get_tnt_ids_from_association(df_tnt = df_tnt)
+          )
       } else {
         # end of efficacy case
         resume <- data %>%
@@ -729,11 +731,19 @@ prepare_data <- function(
   ## add description
   if (is.null(prep_desc)) {
     prep_desc <- generate_description(
-      df, var_cols, group_cols, funs, filters, add_plot_desc, add_trt_desc
+      df,
+      var_cols,
+      group_cols,
+      funs,
+      filters,
+      add_plot_desc,
+      add_trt_desc
     )
   }
-  if(is.null(all_data_resume)) {
-    message("error no prepared data to return. Please consider to set add_plot_desc and/or add_trt_desc to TRUE")
+  if (is.null(all_data_resume)) {
+    message(
+      "error no prepared data to return. Please consider to set add_plot_desc and/or add_trt_desc to TRUE"
+    )
     return(NULL)
   }
 
@@ -770,6 +780,7 @@ prepare_data <- function(
 #' @returns Character vector of validated numeric column names, or NULL if none found
 #'
 #' @keywords internal
+#' @noRd
 resolve_var_cols <- function(data, var_cols) {
   if (is.null(var_cols)) {
     var_cols <- guess_var_cols(data)
@@ -779,7 +790,6 @@ resolve_var_cols <- function(data, var_cols) {
     message("var_cols cannot be empty")
     return(NULL)
   }
-
 
   # Vérifier que les colonnes existent
   var_cols <- validate_cols_exist(data, var_cols, "numeric")
@@ -803,6 +813,7 @@ resolve_var_cols <- function(data, var_cols) {
 #' @returns Character. Name of guessed variable column, or NULL if none found
 #'
 #' @keywords internal
+#' @noRd
 guess_var_cols <- function(data) {
   if ("value" %in% names(data)) {
     return("value")
@@ -831,6 +842,7 @@ guess_var_cols <- function(data) {
 #' @returns Character vector of valid column names
 #'
 #' @keywords internal
+#' @noRd
 validate_cols_exist <- function(data, cols, type = NULL) {
   valid_cols <- if (is.null(type)) {
     intersect(cols, colnames(data))
@@ -842,7 +854,12 @@ validate_cols_exist <- function(data, cols, type = NULL) {
 
   removed <- setdiff(cols, valid_cols)
   if (length(removed) > 0) {
-    message("Columns removed (not found or type non ",type,") :", paste(removed, collapse = ", "))
+    message(
+      "Columns removed (not found or type non ",
+      type,
+      ") :",
+      paste(removed, collapse = ", ")
+    )
   }
 
   return(valid_cols)
@@ -865,6 +882,7 @@ validate_cols_exist <- function(data, cols, type = NULL) {
 #' @returns Filtered dataframe, or NULL if no rows remain after filtering
 #'
 #' @keywords internal
+#' @noRd
 apply_filters <- function(self, data, filters, flex) {
   if (is.null(filters) || length(filters) == 0) {
     return(data)
@@ -905,12 +923,16 @@ apply_filters <- function(self, data, filters, flex) {
 #' @returns Dataframe, potentially enriched with metadata
 #'
 #' @keywords internal
+#' @noRd
 ensure_filter_cols <- function(self, data, filters, flex) {
+  # local binding
+  . <- NULL
+
   missing_cols <- setdiff(names(filters), colnames(data))
 
   if (length(missing_cols) == 0) return(data)
 
-  # Essayer d'ajouter les métadonnées
+  # try to add metadata
   enriched_data <- data %>%
     merge_data_plotdesc(self, ., flex = flex) %>%
     merge_data_xpdesc(self, .)
@@ -936,6 +958,7 @@ ensure_filter_cols <- function(self, data, filters, flex) {
 #' @returns Named list of valid filters only
 #'
 #' @keywords internal
+#' @noRd
 validate_filter_cols <- function(data, filters) {
   valid_filters <- filters[names(filters) %in% colnames(data)]
 
@@ -959,6 +982,7 @@ validate_filter_cols <- function(data, filters) {
 #' @returns Filtered dataframe
 #'
 #' @keywords internal
+#' @noRd
 apply_filter_conditions <- function(data, filters) {
   for (col in names(filters)) {
     data <- data %>%
@@ -982,24 +1006,32 @@ apply_filter_conditions <- function(data, filters) {
 #' @returns Dataframe with TNT associations, or NULL if tnt_mode is "all"
 #'
 #' @keywords internal
+#' @noRd
 prepare_tnt_association <- function(self, tnt_mode, code_tnt) {
   if (tnt_mode == "all" && is.null(self$plot_tnt_association$mean)) {
     message("Looking TNT plot in metadata")
-    self$plot_tnt_association$mean <- data.frame(tnt_id = extract_tnt_from_metadata(self,code_tnt))
+    self$plot_tnt_association$mean <- data.frame(
+      tnt_id = extract_tnt_from_metadata(self, code_tnt)
+    )
   }
 
-  # Générer les associations si nécessaire
-  if (tnt_mode == "block" && is.null(self$plot_tnt_association$block_association)) {
+  # association genereation if needed
+  if (
+    tnt_mode == "block" && is.null(self$plot_tnt_association$block_association)
+  ) {
     message("Generating block_association table")
     block_tnt(self)
   }
 
-  if (tnt_mode == "nearest" && is.null(self$plot_tnt_association$nearest_association)) {
+  if (
+    tnt_mode == "nearest" &&
+      is.null(self$plot_tnt_association$nearest_association)
+  ) {
     message("Generating nearest_association table")
     nearest_tnt(self)
   }
 
-  # Récupérer l'association appropriée
+  # get the association table
   df_tnt <- switch(
     tnt_mode,
     "all" = self$plot_tnt_association$mean,
@@ -1009,13 +1041,12 @@ prepare_tnt_association <- function(self, tnt_mode, code_tnt) {
     NULL
   )
 
-  # Valider l'association
+  # validate the association
   if (!is.null(df_tnt)) {
     stopifnot(is.data.frame(df_tnt))
     if (!("tnt_id" %in% colnames(df_tnt))) {
       stop("'tnt_id' must be a column of df_tnt")
     }
-
   }
   return(df_tnt)
 }
@@ -1031,22 +1062,23 @@ prepare_tnt_association <- function(self, tnt_mode, code_tnt) {
 #' @returns Character vector of TNT plot_id values, or NULL if none found
 #'
 #' @keywords internal
+#' @noRd
 extract_tnt_from_metadata <- function(self, code_tnt) {
   tnt_ids <- c()
 
   ## extract and merge metata moda and plot
   mdata <- self$metadata$plot_desc
-  if(!is.null(mdata)) {
-    if(!is.null(self$metadata$moda_desc)) {
+  if (!is.null(mdata)) {
+    if (!is.null(self$metadata$moda_desc)) {
       mdata <- merge(mdata, self$metadata$moda_desc)
     }
-    # Identifier les colonnes character/factor
+    # Identify character/factor cols
     char_cols <- names(mdata)[sapply(mdata, function(x) {
       is.character(x) || is.factor(x)
     })]
 
     if (length(char_cols) > 0 && "plot_id" %in% names(mdata)) {
-      # Créer un masque pour les lignes contenant code_tnt
+      # create a mask for rows that contains code_tnt
       tnt_pattern <- paste0("\\b", code_tnt, "\\b")
 
       contains_tnt <- apply(mdata[, char_cols, drop = FALSE], 1, function(row) {
@@ -1059,8 +1091,10 @@ extract_tnt_from_metadata <- function(self, code_tnt) {
       tnt_ids <- c(tnt_ids, mdata$plot_id[contains_tnt])
     }
     if (!is.null(tnt_ids) && length(tnt_ids) > 0) {
-      message(sprintf("Using metadata to identify TNT: found %d TNT plot(s)",
-                      length(tnt_ids)))
+      message(sprintf(
+        "Using metadata to identify TNT: found %d TNT plot(s)",
+        length(tnt_ids)
+      ))
       return(unique(tnt_ids))
     } else {
       message("No TNT plots found in metadata")
@@ -1104,10 +1138,15 @@ extract_tnt_from_metadata <- function(self, code_tnt) {
 #' )
 #' }
 #'
-#' @export
-get_tnt_ids_from_association <- function(self =NULL, tnt_mode = NULL, df_tnt = NULL) {
+#' @keywords internal
+#' @noRd
+get_tnt_ids_from_association <- function(
+  self = NULL,
+  tnt_mode = NULL,
+  df_tnt = NULL
+) {
   # if all is NULL
-  if(is.null(self)&is.null(tnt_mode)&is.null(df_tnt)) {
+  if (is.null(self) & is.null(tnt_mode) & is.null(df_tnt)) {
     message("provide self and tnt_mode OR df_tnt")
     return(NULL)
   }
@@ -1178,13 +1217,26 @@ get_tnt_ids_from_association <- function(self =NULL, tnt_mode = NULL, df_tnt = N
 #' @returns Character. Description string
 #'
 #' @keywords internal
-generate_description <- function(df, var_cols, group_cols, funs, filters,
-                                 add_plot_desc, add_trt_desc) {
+#' @noRd
+generate_description <- function(
+  df,
+  var_cols,
+  group_cols,
+  funs,
+  filters,
+  add_plot_desc,
+  add_trt_desc
+) {
   desc <- paste(
     paste(names(funs), collapse = " and "),
-    "of (", paste(var_cols, collapse = " and "), ")",
-    "grouped by (", paste(group_cols, collapse = " and "), ")",
-    "calculated on dataset", df
+    "of (",
+    paste(var_cols, collapse = " and "),
+    ")",
+    "grouped by (",
+    paste(group_cols, collapse = " and "),
+    ")",
+    "calculated on dataset",
+    df
   )
 
   if (!is.null(filters)) {
@@ -1192,7 +1244,9 @@ generate_description <- function(df, var_cols, group_cols, funs, filters,
       desc <- paste(
         desc,
         ifelse(i > 1, "and", ""),
-        "filtered by", names(filters)[i], "=",
+        "filtered by",
+        names(filters)[i],
+        "=",
         paste(filters[[i]], collapse = " or ")
       )
     }
@@ -1216,7 +1270,6 @@ generate_description <- function(df, var_cols, group_cols, funs, filters,
 #'
 #'
 standardise_pom_csv = function(file, skip_forecast = TRUE) {
-
   # check input file
   if (!check_pom_csv(file)) {
     message("[import_meteo] ⛔ Import interrupted: essential columns missing.")
@@ -1236,14 +1289,15 @@ standardise_pom_csv = function(file, skip_forecast = TRUE) {
   if (skip_forecast) {
     if (nrow(df) > 14) {
       df <- df[-seq_len(14), , drop = FALSE]
-      message("[standardise_pom_csv] ℹ️ 14 firts lines removed (weather forecast)")
+      message(
+        "[standardise_pom_csv] ℹ️ 14 firts lines removed (weather forecast)"
+      )
     } else {
       warning(
         "[standardise_pom_csv] ⚠️ Less than 15 lines in the file, nothing deleted."
       )
     }
   }
-
 
   to_num <- function(x) {
     if (is.numeric(x)) return(x)
