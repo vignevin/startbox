@@ -876,3 +876,180 @@ import_pom_csv <- function(
     # if nrows_added>0 add a new line to traceability
   }
 }
+
+
+#' @title Export Prepared Data and Statistics to a Timestamped Excel File
+#'
+#' @description
+#' Exports processed dataframes from `prepared_data` and statistical results from `stats` 
+#' into a single Excel workbook. The file is automatically saved to the user's "Downloads" 
+#' folder with a unique timestamp to prevent overwriting.
+#'
+#' @param self An instance of the R6 class. Must contain `prepared_data` and/or `stats` lists.
+#' @param selected_data Optional character vector. Names of specific datasets or analyses 
+#' to export. If `NULL` (default), all available data are exported.
+#'
+#' @return Invisibly returns the `self` object. The full path to the generated Excel file 
+#' is stored in `self$excel_data_trial`.
+#'
+#' @details
+#' - **File Management**: The file is named `Stats_YYYY-MM-DD_HHhMM.xlsx` and saved in the 
+#' system's default Downloads directory.
+#' - **Data Organization**: 
+#'   - Prepared data is exported as Excel tables with any associated "description" attributes added as cell comments.
+#'   - Statistical analyses export two tables per sheet: global statistics and group means.
+#' - **Safety**: The function checks for the R6 class and ensures that the requested 
+#' data exists before proceeding.
+#'
+#' @export
+export_stats_sheets <- function(self, selected_data = NULL) {
+  
+  # 1. Initial checks (Input & Data)
+  if (!inherits(self, "R6")) {
+    stop("The argument 'self' must be a valid R6 object.")
+  }
+  
+  has_stats <- !is.null(self$stats) && length(self$stats) > 0
+  has_prepared <- !is.null(self$prepared_data) && length(self$prepared_data) > 0
+  
+  if (!has_stats && !has_prepared) {
+    warning("No statistics or prepared data to export.")
+    return(invisible(NULL))
+  }
+  
+  #2. Filtering data to be exported
+  available_prepared <- if (has_prepared) names(self$prepared_data) else character(0)
+  available_stats <- if (has_stats) names(self$stats) else character(0)
+  all_available <- unique(c(available_prepared, available_stats))
+  
+  if (!is.null(selected_data)) {
+    missing_data <- setdiff(selected_data, all_available)
+    if (length(missing_data) > 0) {
+      warning(paste("The following names were not found and will be ignored:", 
+                    paste(missing_data, collapse = ", ")))
+    }
+    
+    selected_names <- intersect(selected_data, all_available)
+    if (length(selected_names) == 0) {
+      warning("None of the selected names are available.")
+      return(invisible(NULL))
+    }
+    
+    prepared_names <- intersect(selected_names, available_prepared)
+    stats_names <- intersect(selected_names, available_stats)
+  } else {
+    prepared_names <- available_prepared
+    stats_names <- available_stats
+  }
+  
+  if (length(prepared_names) == 0 && length(stats_names) == 0) {
+    warning("No data to export after filtering.")
+    return(invisible(NULL))
+  }
+  
+  # 3. Configuring the output file (Downloads)
+  user_home <- Sys.getenv("USERPROFILE")
+  if (user_home == "") user_home <- path.expand("~")
+  download_dir <- file.path(user_home, "Downloads")
+  
+  timestamp <- format(Sys.time(), "%Y-%m-%d_%Hh%M")
+  output_path <- file.path(download_dir, paste0("Stats_", timestamp, ".xlsx"))
+  
+  wb <- openxlsx2::wb_workbook()
+  used_sheet_names <- character(0)
+  
+  #4. Helper: Managing Excel tab names (max. 31 characters)
+  make_unique_sheet_name <- function(base_name, suffix, used_names) {
+    full_name <- paste0(base_name, suffix)
+    sheet_name <- substr(full_name, 1, 31)
+    
+    if (sheet_name %in% used_names) {
+      counter <- 1
+      max_base_length <- 31 - nchar(suffix) - 3
+      base_truncated <- substr(base_name, 1, max_base_length)
+      
+      repeat {
+        candidate <- substr(paste0(base_truncated, "_", counter, suffix), 1, 31)
+        if (!candidate %in% used_names) {
+          sheet_name <- candidate
+          break
+        }
+        counter <- counter + 1
+      }
+    }
+    return(sheet_name)
+  }
+  
+  # 5. PART 1: Exporting prepared data (prepared_data)
+  if (length(prepared_names) > 0) {
+    for (prep_name in prepared_names) {
+      df_prep <- self$prepared_data[[prep_name]]
+      if (!is.data.frame(df_prep)) next
+      
+      sheet_name <- make_unique_sheet_name(prep_name, ".prepare", used_sheet_names)
+      used_sheet_names <- c(used_sheet_names, sheet_name)
+      
+      clean_prep_name <- gsub("[^[:alnum:]]", "_", prep_name)
+      table_name <- paste0("Data_", substr(clean_prep_name, 1, 25))
+      
+      table_counter <- 1
+      original_table_name <- table_name
+      while (table_name %in% openxlsx2::wb_get_tables(wb, sheet = NULL)) {
+        table_name <- paste0(substr(original_table_name, 1, 28), "_", table_counter)
+        table_counter <- table_counter + 1
+      }
+      
+      wb <- wb %>%
+        openxlsx2::wb_add_worksheet(sheet = sheet_name) %>%
+        openxlsx2::wb_add_data_table(sheet = sheet_name, x = df_prep, table_name = table_name)
+      
+      description <- attr(df_prep, "description")
+      if (!is.null(description) && nchar(description) > 0) {
+        wb <- wb %>% openxlsx2::wb_add_comment(sheet = sheet_name, dims = "A1", comment = description)
+      }
+    }
+  }
+  
+  # 6. PART 2: Exporting statistical analyses (stats)
+  if (length(stats_names) > 0) {
+    for (ana_name in stats_names) {
+      res_list <- self$stats[[ana_name]]
+      if (is.null(res_list$df.stats) || is.null(res_list$df.grp_means)) next
+      
+      df_stats <- res_list$df.stats
+      df_means <- res_list$df.grp_means
+      sheet_name <- make_unique_sheet_name(ana_name, ".stats", used_sheet_names)
+      used_sheet_names <- c(used_sheet_names, sheet_name)
+      
+      clean_ana_name <- gsub("[^[:alnum:]]", "_", ana_name)
+      start_row_means <- nrow(df_stats) + 4 
+      
+      stats_table_name <- paste0("Stats_", substr(clean_ana_name, 1, 20))
+      means_table_name <- paste0("Means_", substr(clean_ana_name, 1, 20))
+      
+      existing_tables <- openxlsx2::wb_get_tables(wb, sheet = NULL)
+      table_counter <- 1
+      while (stats_table_name %in% existing_tables) {
+        stats_table_name <- paste0(substr(stats_table_name, 1, 28), "_", table_counter)
+        table_counter <- table_counter + 1
+      }
+      
+      wb <- wb %>%
+        openxlsx2::wb_add_worksheet(sheet = sheet_name) %>%
+        openxlsx2::wb_add_data_table(sheet = sheet_name, x = df_stats, start_row = 1, table_name = stats_table_name) %>%
+        openxlsx2::wb_add_data_table(sheet = sheet_name, x = df_means, start_row = start_row_means, table_name = means_table_name)
+    }
+  }
+  
+  #7. Saving and finalizing 
+  tryCatch({
+    openxlsx2::wb_save(wb, file = output_path, overwrite = TRUE)
+    self$excel_data_trial <- output_path
+    message(paste("Statistics file generated:", output_path))
+  }, error = function(e) {
+    warning(paste("Error creating Excel file:", e$message))
+  })
+  
+  invisible(self)
+}
+
