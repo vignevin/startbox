@@ -63,23 +63,24 @@ user_data <- R6::R6Class(
         } else {
           self$name <- name
         }
+        
+        self$traceability <- data.frame(
+          dataop_date = character(),
+          dataop_desc = character(),
+          dataop_agent = character(),
+          dataop_input = character(),
+          dataop_output = character(),
+          stringsAsFactors = FALSE
+        )
+        
         load_metadata_sheets(self)
         load_data_sheets(self)
         load_weather_sheet(self)
         
-        self$traceability <- data.frame(
-          datetime = character(),
-          operation = character(),
-          filename = character(),
-          description = character(),
-          package_version = character(),
-          stringsAsFactors = FALSE
-        )
       } else {
         invisible()
       }
     },
-    
     #' @description
     #' Adds or updates a metadata element in the `metadata` slot.
     #'
@@ -105,7 +106,11 @@ user_data <- R6::R6Class(
     #'
     #' @return None. The object is modified in place.
     add_obs = function(name, df, source_file = NULL, overwrite = FALSE) {
-      filename_base <- if (!is.null(source_file)) source_file else name
+      source <- if (!is.null(source_file)) {
+        basename(source_file) 
+      } else {
+        name
+      }
       
       if (name %in% names(self$obs_data)) {
         if (!overwrite) {
@@ -118,8 +123,9 @@ user_data <- R6::R6Class(
           message(paste("🔁 Updating existing element:", name))
           
           self$log_trace(
-            operation = "update_data",
-            filename = filename_base,
+            operation = "update",
+            source = source,
+            destination = paste0("data_", name),
             description = "Observation updated via add_obs"
           )
         }
@@ -128,7 +134,8 @@ user_data <- R6::R6Class(
         
         self$log_trace(
           operation = "import",
-          filename = filename_base,
+          source = source,
+          destination = paste0("data_", name),
           description = "New observation added via add_obs"
         )
       }
@@ -153,7 +160,7 @@ user_data <- R6::R6Class(
     #' @param description A description of the operation to store in log
     #'
     #' @return No return value. This function updates the internal `traceability` data frame.
-    log_trace = function(operation, filename, description = "") {
+    log_trace = function(operation, source, destination, description = "") {
       package_version <- tryCatch(
         {
           paste0("startbox v", as.character(utils::packageVersion("startbox")))
@@ -164,11 +171,11 @@ user_data <- R6::R6Class(
       )
       
       new_entry <- data.frame(
-        datetime = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-        operation = operation,
-        filename = filename,
-        description = description,
-        package_version = package_version,
+        dataop_date = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+        dataop_desc = description,
+        dataop_agent = package_version,
+        dataop_input = source,
+        dataop_output = destination,
         stringsAsFactors = FALSE
       )
       
