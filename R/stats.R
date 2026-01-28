@@ -145,7 +145,7 @@ test_stats <- function(
   )
 
   self$stats[[prep_data]] <- stats_result
-  message(paste0("Stats saved in : [data_user object]stats$", prep_data))
+  message(paste0("Stats saved in : [data_user object]$stats$", prep_data))
 }
 
 
