@@ -548,7 +548,18 @@ prepare_data <- function(
 
   ## check correspondance between plot_id to adjust flex if not provided
   if (is.null(flex)) {
-    if (check_plotid_diff(self$metadata$plot_desc, data)) {
+    
+    has_plot_desc <- !is.null(self$metadata$plot_desc) && 
+      nrow(self$metadata$plot_desc) > 0 && 
+      "plot_id" %in% colnames(self$metadata$plot_desc)
+    
+    # Si on a une description, on lance la comparaison
+    check_diff <- if (has_plot_desc) {
+      check_plotid_diff(self$metadata$plot_desc, data)
+    } else {
+      FALSE 
+    }
+    if (isTRUE(check_diff)) { 
       message(
         "flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10"
       )
@@ -1008,6 +1019,12 @@ apply_filter_conditions <- function(data, filters) {
 #' @keywords internal
 #' @noRd
 prepare_tnt_association <- function(self, tnt_mode, code_tnt) {
+  
+  if (is.null(self$metadata$plot_desc) || nrow(self$metadata$plot_desc) == 0) {
+    message("no metadata found : please consider to complete plot and treatment description in the Excel file before proceeding")
+    return(NULL)
+  }
+  
   if (tnt_mode == "all" && is.null(self$plot_tnt_association$mean)) {
     message("Looking TNT plot in metadata")
     self$plot_tnt_association$mean <- data.frame(
