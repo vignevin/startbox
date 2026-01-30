@@ -80,6 +80,23 @@ test_stats <- function(
       block <- "block_code"
     }
   }
+  
+  # Verification of the processing factor
+  if (is.null(fcol)) {
+    fcol <- intersect(c("xp_trt_name", "xp_trt_code"), names(data))[1]
+  }
+  
+  # If fcol is empty or absent from the data, we stop cleanly
+  if (is.null(fcol) || is.na(fcol) || !fcol %in% colnames(data)) {
+    message("no metadata found : please consider to complete plot and treatment description in the Excel file before proceeding")
+    return(NULL)
+  }
+  
+  # Block verification (if the user has enabled the option)
+  if (!isFALSE(block) && !block %in% colnames(data)) {
+    message(paste("block column", block, "not found. Please check your metadata."))
+    return(NULL)
+  }
 
   unique_calculation <- unique(data$calculation)
 
