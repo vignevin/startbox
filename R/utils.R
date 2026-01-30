@@ -89,12 +89,16 @@ order_factor_levels_numeric_last <- function(f) {
 #' @export
 #'
 check_plotid_diff <- function(df_as_ref, df_to_test) {
+  if (is.null(df_as_ref) || is.null(df_to_test)) return(FALSE)
+  if (nrow(df_as_ref) == 0 || nrow(df_to_test) == 0) return(FALSE)
+  
   ## check if plot_id if in both dataframes
   flag_diff = FALSE
   if (!"plot_id" %in% intersect(colnames(df_as_ref), colnames(df_to_test))) {
-    message("col plot_id not in the 2 dataframes")
-    return(NULL)
+    message("col plot_id not in the 2 dataframes") 
+    return(FALSE) 
   }
+  
   df_as_ref.plotid <- as.character(df_as_ref$plot_id)
   df_to_test.plotid <- as.character(df_to_test$plot_id)
 
