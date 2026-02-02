@@ -548,18 +548,17 @@ prepare_data <- function(
 
   ## check correspondance between plot_id to adjust flex if not provided
   if (is.null(flex)) {
-    
-    has_plot_desc <- !is.null(self$metadata$plot_desc) && 
-      nrow(self$metadata$plot_desc) > 0 && 
+    has_plot_desc <- !is.null(self$metadata$plot_desc) &&
+      nrow(self$metadata$plot_desc) > 0 &&
       "plot_id" %in% colnames(self$metadata$plot_desc)
-    
+
     # Si on a une description, on lance la comparaison
     check_diff <- if (has_plot_desc) {
       check_plotid_diff(self$metadata$plot_desc, data)
     } else {
-      FALSE 
+      FALSE
     }
-    if (isTRUE(check_diff)) { 
+    if (isTRUE(check_diff)) {
       message(
         "flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10"
       )
@@ -584,9 +583,11 @@ prepare_data <- function(
     group_syms <- dplyr::syms(c(group_cols, "calculation"))
   }
 
-  # 6.get df_tnt
-  df_tnt <- prepare_tnt_association(self, tnt_mode, code_tnt)
-  group_tnt <- c(group_tnt, dplyr::syms("plot_id")) ## to calculate var for each plot_id identified as TNT
+  # 6.get df_tnt (efficacy case only)
+  if (any(vapply(funs, identical, logical(1), startbox::efficacy))) {
+    df_tnt <- prepare_tnt_association(self, tnt_mode, code_tnt)
+    group_tnt <- c(group_tnt, dplyr::syms("plot_id")) ## to calculate var for each plot_id identified as TNT
+  }
 
   ## for each var in var_cols
   all_data_resume <- data.frame()
@@ -1019,12 +1020,13 @@ apply_filter_conditions <- function(data, filters) {
 #' @keywords internal
 #' @noRd
 prepare_tnt_association <- function(self, tnt_mode, code_tnt) {
-  
   if (is.null(self$metadata$plot_desc) || nrow(self$metadata$plot_desc) == 0) {
-    message("no metadata found : please consider to complete plot and treatment description in the Excel file before proceeding")
+    message(
+      "no metadata found : please consider to complete plot and treatment description in the Excel file before proceeding"
+    )
     return(NULL)
   }
-  
+
   if (tnt_mode == "all" && is.null(self$plot_tnt_association$mean)) {
     message("Looking TNT plot in metadata")
     self$plot_tnt_association$mean <- data.frame(
