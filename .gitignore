@@ -35,6 +35,7 @@ rsconnect/
 startbox.Rproj
 # example files
 misc/biovimed_teissonniere_2024.xlsx
+/misc/
 inst/doc
 **/.quarto/
 /doc/

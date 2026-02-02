@@ -1,6 +1,6 @@
 library(startbox)
 test_file <- "..//beta users//xavier//data_problad2025_v2.xlsx"
-mydata <- user_data$new(test_file)
+mydata <- load_excel_file(test_file)
 
 ## resolve vars
 mydata$obs_data$data_G1$UN_LEAF_PC <- rep(0.1,length=nrow(mydata$obs_data$data_G1))
@@ -88,7 +88,7 @@ prepare_data(mydata, df="data_G3",
              flex=F,
              prep_name = "volume_IA")
 prepare_data(mydata, df="volume_IA", funs = list(efficacité = efficacy),
-             tnt_mode = "zl",
+             tnt_mode = "nearest",
              code_tnt = "TNT",
              prep_name = "eff")
 
@@ -121,3 +121,4 @@ prepare_data(mydata,
              tnt_mode = "block")
 test_stats(mydata, prep_data = "eff_G1")
 plot_xpbar(mydata,stat = "eff_G1")
+plot_meteo(mydata)
