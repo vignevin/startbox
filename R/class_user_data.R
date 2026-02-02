@@ -151,6 +151,13 @@ user_data <- R6::R6Class(
       } else {
         name
       }
+      
+      # function to add "data_" 
+      add_data_prefix <- function(x) {
+        ifelse(startsWith(x, "data_"), x, paste0("data_", x))
+      }
+      name <- add_data_prefix(name)
+      
       if (name %in% names(self$obs_data)) {
         if (!overwrite) {
           message(paste(
@@ -162,9 +169,8 @@ user_data <- R6::R6Class(
           message(paste("🔁 Updating existing element:", name))
 
           self$log_trace(
-            operation = "update",
             source = source,
-            destination = paste0("data_", name),
+            destination = name,
             description = "Observation updated via add_obs"
           )
         }
@@ -172,9 +178,8 @@ user_data <- R6::R6Class(
         message(paste("✅ Adding a new element:", name))
 
         self$log_trace(
-          operation = "import",
           source = source,
-          destination = paste0("data_", name),
+          destination = name,
           description = "New observation added via add_obs"
         )
       }
@@ -192,14 +197,14 @@ user_data <- R6::R6Class(
 
     #' @description
     #' This function adds a new entry to the `traceability` log stored in the R6 object.
-    #' It records the type of operation, the target file or sheet name(s), and the timestamp.
+    #' It records the description of the data operation, the input and output files or sheet name(s), and the timestamp.
     #'
-    #' @param operation A character string describing the action performed (e.g. `"import"`, `"export"`, `"update"`).
-    #' @param filename A character string indicating the name(s) of the file or sheet involved in the operation.
-    #' @param description A description of the operation to store in log
+    #' @param source a string to indicate the input of the data operation
+    #' @param destination a string to indicate the output of the data operation
+    #' @param description A description of the action performed (e.g. `"import"`, `"export"`, `"update"`).
     #'
     #' @return No return value. This function updates the internal `traceability` data frame.
-    log_trace = function(operation, source, destination, description = "") {
+    log_trace = function(source, destination, description = "") {
       package_version <- tryCatch(
         {
           paste0("startbox v", as.character(utils::packageVersion("startbox")))

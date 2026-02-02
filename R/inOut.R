@@ -396,7 +396,6 @@ load_data_sheets <- function(self) {
       if (safe_sheet %in% names(self$obs_data)) {
         message("🔁 Sheet already loaded: ", safe_sheet, " → replaced.")
         self$log_trace(
-          operation = "update",
           source = filename_base,
           destination = safe_sheet,
           description = "Sheet updated from Excel"
@@ -404,7 +403,6 @@ load_data_sheets <- function(self) {
       } else {
         message(paste("✅ Sheet", safe_sheet, "added into obs_data"))
         self$log_trace(
-          operation = "load",
           source = filename_base,
           destination = safe_sheet,
           description = "Sheet loaded from Excel"
@@ -434,7 +432,28 @@ load_data_sheets <- function(self) {
 #' @export
 export_data_sheets <- function(self, update_mto = FALSE) {
   wb <- openxlsx2::wb_load(self$excel_data_trial)
-  added_sheets <- list()  # Changé en list pour stocker à la fois le nom et la source
+  
+  # update meteo
+  if (update_mto) {
+    if (!is.data.frame(self$meteo)) {
+      message("no meteo data found, please check")
+    } else {
+      if (!"meteo" %in% wb$sheet_names) {
+        wb$add_worksheet(sheet = "meteo")
+      }
+      tables <- wb$get_tables(sheet = "meteo")
+      if(!is.null(nrow(tables)) && nrow(tables)>0) {
+        for (i in 1:nrow(tables))
+        {
+          wb$remove_tables(sheet = "meteo",table = tables$tab_name[i])
+        }
+      }
+      wb$add_data_table(sheet = "meteo", x = self$meteo)
+      message("meteo data updated")
+    }
+  }
+  
+  added_sheets <- list()  # list to store name and source
   
   for (i in seq_along(self$obs_data)) {
     original_name <- names(self$obs_data)[i]
@@ -451,28 +470,8 @@ export_data_sheets <- function(self, update_mto = FALSE) {
       wb$add_worksheet(sheetname)
       wb$add_data_table(sheet = sheetname, x = df)
       message("✅ Sheet added: ", sheetname)
-      # Stocker à la fois le nom de la feuille et le nom original
+      # Store both the sheet name and the original name
       added_sheets[[sheetname]] <- original_name
-    }
-  }
-
-  # update meteo
-  if (update_mto) {
-    if (!is.data.frame(self$meteo)) {
-      message("no meteo data found, please check")
-    } else {
-      if (!"meteo" %in% wb$sheet_names) {
-        wb$add_worksheet(sheet = "meteo")
-      }
-      tables <- wb$get_tables(sheet = "meteo")
-      if(nrow(tables)>0) {
-        for (i in 1:nrow(tables))
-        {
-        wb$remove_tables(sheet = "meteo",table = tables$tab_name[i])
-        }
-      }
-      wb$add_data_table(sheet = "meteo", x = self$meteo)
-      message("meteo data updated")
     }
   }
 
@@ -487,32 +486,30 @@ export_data_sheets <- function(self, update_mto = FALSE) {
     paste0(name_no_ext, "_", timestamp, ".", ext)
   )
   
+  # add traceability in suivi_data
+  if (!"suivi_data" %in% wb$sheet_names) {
+    wb$add_worksheet(sheet = "suivi_data")
+  }
+  tables <- wb$get_tables(sheet = "suivi_data")
+  if(!is.null(nrow(tables)) && nrow(tables)>0) {
+    for (i in 1:nrow(tables))
+    {
+      wb$remove_tables(sheet = "suivi_data",table = tables$tab_name[i])
+    }
+  }
+  wb$add_data_table(sheet = "suivi_data", x = self$traceability)
+  message("suivi_data updated")
+
   wb$set_sheet_visibility(sheet = "uri_list", value = "veryHidden")
   wb$set_sheet_visibility(sheet = "listes", value = "veryHidden")
   wb$save(file = new_filename)
   message("✅ New Excel file saved at: ", new_filename)
   
-
-  
-  # Ajout dans traceability
-  if (length(added_sheets) > 0) {
-    for (sheet in names(added_sheets)) {
-      original_name <- added_sheets[[sheet]]
-      
-      self$log_trace(
-        operation = "export",
-        source = self$excel_data_trial,        # Source = nom dans obs_data
-        destination = new_filename,           # Destination = nom de la feuille Excel
-        description = "Sheet exported to Excel"
-      )
-    }
-  }
-  
   # update file path
   self$excel_data_trial <- new_filename
   
   # update of log sheet
-  write_log(self)
+  ## write_log(self) DEPRECATED 
   invisible(new_filename)
 }
 
@@ -534,177 +531,6 @@ wrapper_data <- function(self) {
   
   #Step 2 : import the "placette" and "modalite" sheets (update self$metadata)
   load_metadata_sheets(self)
-}
-
-#' @title Write log to Excel file
-#'
-#' @description
-#' This function writes the content of the `traceability` slot from a `user_data` object into a sheet named "log"
-#' in the associated Excel file. If the sheet already exists, the new entries are appended to the existing ones.
-#'
-#' @param self A `user_data` R6 object with a `traceability` data.frame and an `excel_data_trial` path.
-#'
-#' @return No return value. The Excel file is updated in place.
-#'
-#' @importFrom dplyr bind_rows
-#' @importFrom openxlsx2 wb_load wb_to_df wb_remove_worksheet wb_add_worksheet wb_add_data wb_save
-#'
-#' @export
-write_log <- function(self) {
-  
-  # Preliminary checks
-  if (is.null(self$excel_data_trial)) {
-    warning("⚠️ No Excel file defined in self$excel_data_trial. Log not written.")
-    return(invisible(NULL))
-  }
-  
-  if (is.null(self$traceability) || nrow(self$traceability) == 0) {
-    message("ℹ️ No logs to write (self$traceability is empty).")
-    return(invisible(NULL))
-  }
-  
-  # Load workbook
-  wb <- openxlsx2::wb_load(self$excel_data_trial)
-  sheet_name <- "suivi_data"
-  
-  # Read and merge existing data ---
-  existing_data <- tryCatch({
-    if (sheet_name %in% openxlsx2::wb_get_sheet_names(wb)) {
-      # Read with automatic table header detection
-      raw_data <- openxlsx2::read_xlsx(
-        self$excel_data_trial, 
-        sheet = sheet_name,
-        start_row = 1,
-        col_names = TRUE,
-        skip_empty_rows = TRUE,
-        skip_empty_cols = FALSE,
-        na.strings = c("", "NA", "#N/A")
-      )
-      
-      # Cleanup: remove completely empty rows or rows filled with NAs
-      if (nrow(raw_data) > 0) {
-        is_empty_row <- apply(raw_data, 1, function(row) {
-          all(is.na(row) | row == "" | row == "#N/A")
-        })
-        raw_data <- raw_data[!is_empty_row, , drop = FALSE]
-      }
-      
-      # Convert to character
-      if (nrow(raw_data) > 0) {
-        raw_data <- as.data.frame(lapply(raw_data, function(col) {
-          col <- as.character(col)
-          col[is.na(col)] <- ""
-          col
-        }), stringsAsFactors = FALSE)
-        
-        # message("📋 Existing data read: ", nrow(raw_data), " rows")
-        raw_data
-      } else {
-        NULL
-      }
-    } else {
-      NULL
-    }
-  }, error = function(e) {
-    warning("⚠️ Unable to read existing logs: ", e$message)
-    NULL
-  })
-  
-  # Convert new logs to character
-  new_logs <- as.data.frame(lapply(self$traceability, function(col) {
-    col <- as.character(col)
-    col[is.na(col)] <- ""
-    col
-  }), stringsAsFactors = FALSE)
-  
-  # Merge data
-  if (!is.null(existing_data) && nrow(existing_data) > 0) {
-    # Column alignment
-    all_cols <- union(names(existing_data), names(new_logs))
-    
-    for (col in all_cols) {
-      if (!col %in% names(existing_data)) existing_data[[col]] <- ""
-      if (!col %in% names(new_logs)) new_logs[[col]] <- ""
-    }
-    
-    # Reordering to ensure consistency
-    existing_data <- existing_data[, all_cols, drop = FALSE]
-    new_logs <- new_logs[, all_cols, drop = FALSE]
-    
-    merged_data <- rbind(existing_data, new_logs)
-    # message("📊 Merge: ", nrow(existing_data), " old + ", nrow(new_logs), " new = ", nrow(merged_data), " rows")
-  } else {
-    merged_data <- new_logs
-    # message("📊 First write: ", nrow(merged_data), " rows")
-  }
-  
-  # REMOVE DUPLICATES
-  n_before <- nrow(merged_data)
-  
-  # Remove duplicates keeping the first occurrence
-  merged_data <- merged_data[!duplicated(merged_data), , drop = FALSE]
-  
-  n_after <- nrow(merged_data)
-  n_removed <- n_before - n_after
-  
-  if (n_removed > 0) {
-    # message("🧹 ", n_removed, " duplicate(s) removed - Remaining: ", n_after, " unique rows")
-  }
-  
-  # Remove old sheet
-  if (sheet_name %in% openxlsx2::wb_get_sheet_names(wb)) {
-    wb <- openxlsx2::wb_remove_worksheet(wb, sheet = sheet_name)
-  }
-  
-  #Create new sheet with structured table
-  wb <- openxlsx2::wb_add_worksheet(wb, sheet = sheet_name)
-  
-  # Generate a unique table name 
-  timestamp_table <- format(Sys.time(), "%Y%m%d%H%M%S")
-  table_name <- paste0("TableSuivi_", timestamp_table)
-  
-  wb <- openxlsx2::wb_add_data_table(
-    wb,
-    sheet = sheet_name,
-    x = merged_data,
-    table_style = "TableStyleLight9",
-    table_name = table_name,
-    with_filter = TRUE
-  )
-  
-  # Hide technical sheets
-  sheet_names <- openxlsx2::wb_get_sheet_names(wb)
-  
-  if ("uri_list" %in% sheet_names) {
-    wb <- openxlsx2::wb_set_sheet_visibility(wb, sheet = "uri_list", value = "veryHidden")
-  }
-  
-  if ("listes" %in% sheet_names) {
-    wb <- openxlsx2::wb_set_sheet_visibility(wb, sheet = "listes", value = "veryHidden")
-  }
-  
-  # Secure save
-  save_success <- tryCatch({
-    openxlsx2::wb_save(wb, file = self$excel_data_trial, overwrite = TRUE)
-    TRUE
-  }, error = function(e) {
-    if (grepl("Permission denied|cannot open", e$message, ignore.case = TRUE)) {
-      warning(
-        "❌ Unable to save logs: the file is probably open in Excel.\n",
-        "   Path: ", self$excel_data_trial, "\n",
-        "   Close the file and try again."
-      )
-    } else {
-      warning("❌ Error during save: ", e$message)
-    }
-    FALSE
-  })
-  
-  if (save_success) {
-    message("✅ Logs updated in sheet '", sheet_name, "' (", nrow(merged_data), " rows)")
-  }
-  
-  invisible(save_success)
 }
 
 #' @title load default dictionary
@@ -872,8 +698,13 @@ import_pom_csv <- function(
       nrows_added <- nrows_df_mto
     }
     message(nrows_added, " rows imported in meteo")
-    ########### TO DO ###########################################
+    
     # if nrows_added>0 add a new line to traceability
+    if(nrows_added>0) {
+      self$log_trace(source = filepath,
+                     destination = "meteo",
+                     description = paste(nrows_added, " rows imported in meteo"))
+    }
   }
 }
 
@@ -1044,7 +875,6 @@ export_stats_sheets <- function(self, selected_data = NULL) {
   #7. Saving and finalizing 
   tryCatch({
     openxlsx2::wb_save(wb, file = output_path, overwrite = TRUE)
-    self$excel_data_trial <- output_path
     message(paste("Statistics file generated:", output_path))
   }, error = function(e) {
     warning(paste("Error creating Excel file:", e$message))
