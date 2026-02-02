@@ -51,7 +51,7 @@ Les données sont chargées dans R dans un objet appartenant à la classe user_d
 ```{r}
 # Création d'un objet avec fichier Excel existant
 # ici le fichier Excel est un fichier exemple fourni avec le package
-mydata <- user_data$new(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
+mydata <- load_excel_file(trial_file = system.file("extdata","standard_exemple.xlsx",package="startbox"))
 ```
 
 Pour adapter ce code à votre cas, modifier le paramètre `trial_file` avec le chemin de votre fichier Excel. Une fonction pratique est d'utiliser `trial_file = file.choose()` pour une sélection interactive du fichier.
@@ -147,3 +147,14 @@ plot_xpbar(mydata,stat = "eff_G1")
 ```{r}
 plot_xpheat(mydata,stat = "eff_G1")
 ```
+# Exporter les stats
+
+Les résultats d'analyses stats peuvent être exportés dans un fichier Excel. 
+Le principe de base est de séparer strictement d'une part les données brutes et d'autre part les données traitées et les résultats d'analyses stats. La procédure d'export créée donc un nouveau fichier Excel. Ce fichier Excel contient les données préparées et les statistiques associées. Il est par défaut sauvegardé dans le dossier téléchargement.
+
+```{r echo = TRUE,  eval=FALSE}
+export_stats_sheets(mydata)
+```
+
+
+

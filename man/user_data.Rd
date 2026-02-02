@@ -165,19 +165,19 @@ A list of data.frames (head of each dataset).
 \if{latex}{\out{\hypertarget{method-UserData-log_trace}{}}}
 \subsection{Method \code{log_trace()}}{
 This function adds a new entry to the \code{traceability} log stored in the R6 object.
-It records the type of operation, the target file or sheet name(s), and the timestamp.
+It records the description of the data operation, the input and output files or sheet name(s), and the timestamp.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{user_data$log_trace(operation, filename, description = "")}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{user_data$log_trace(source, destination, description = "")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{operation}}{A character string describing the action performed (e.g. \code{"import"}, \code{"export"}, \code{"update"}).}
+\item{\code{source}}{a string to indicate the input of the data operation}
 
-\item{\code{filename}}{A character string indicating the name(s) of the file or sheet involved in the operation.}
+\item{\code{destination}}{a string to indicate the output of the data operation}
 
-\item{\code{description}}{A description of the operation to store in log}
+\item{\code{description}}{A description of the action performed (e.g. \code{"import"}, \code{"export"}, \code{"update"}).}
 }
 \if{html}{\out{</div>}}
 }
