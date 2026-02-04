@@ -1,6 +1,13 @@
 library(startbox)
 test_file <- "..//beta users//xavier//data_problad2025_v2.xlsx"
 mydata <- load_excel_file(test_file)
+export_data_sheets(mydata)
+
+##
+plot_meteo(mydata, start_day = "30/01/2024",end_day = "30/04/2024")
+import_pom_csv(mydata,filepath = system.file("extdata","30_BELLEGARDE_MARINE.csv",package="startbox"))
+
+plot_meteo(mydata, start_day = "30/01/2024",end_day = "30/07/2024")
 
 ## resolve vars
 mydata$obs_data$data_G1$UN_LEAF_PC <- rep(0.1,length=nrow(mydata$obs_data$data_G1))

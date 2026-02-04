@@ -402,11 +402,6 @@ load_data_sheets <- function(self) {
         )
       } else {
         message(paste("✅ Sheet", safe_sheet, "added into obs_data"))
-        self$log_trace(
-          source = filename_base,
-          destination = safe_sheet,
-          description = "Sheet loaded from Excel"
-        )
       }
       
       self$obs_data[[safe_sheet]] <- df_clean
@@ -497,16 +492,16 @@ export_data_sheets <- function(self, update_mto = FALSE) {
       wb$remove_tables(sheet = "suivi_data",table = tables$tab_name[i])
     }
   }
-  wb$add_data_table(sheet = "suivi_data", x = self$traceability)
-  message("suivi_data updated")
-
+  suppressWarnings(wb$add_data_table(sheet = "suivi_data", x = self$traceability))
+  #message("suivi_data updated")
+  
   wb$set_sheet_visibility(sheet = "uri_list", value = "veryHidden")
   wb$set_sheet_visibility(sheet = "listes", value = "veryHidden")
   wb$save(file = new_filename)
   message("✅ New Excel file saved at: ", new_filename)
   
-  # update file path
-  self$excel_data_trial <- new_filename
+  # update file path 
+  # self$excel_data_trial <- new_filename
   
   # update of log sheet
   ## write_log(self) DEPRECATED 
@@ -708,6 +703,48 @@ import_pom_csv <- function(
   }
 }
 
+#' Import topvigne observational data from a Topvigne csv file
+#'
+#' @description
+#' This function imports meteorological data from a CSV file exported from the Topvigne App.
+#' The data are standardized before being added to `self$obsdata`.
+#' The function also updates the internal log (traceability).
+#'
+#' @param filepath File path of the csv file to be imported. This file must be a csv file exported from TopVigne (IFV app)
+#' @param self An `user_data` R6 object in which to import the meteo
+#' @param obs_name the name of the observation to add
+#' @param overwrite Logical. If TRUE, replaces an existing entry with the same name.
+#'
+#' @returns Updates `self$obs_data` with the imported data, update also the log. Returns `invisible(self$obs_data)`.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Import new topvigne data into an existing user_data object
+#' file_path <- system.file("extdata","maladie_teisso_2024_11h12min_F1_17.06.csv",package="startbox")
+#' import_topvigne_csv(self = mydata, filepath = file_path, obs_name = "F1")
+#' }
+#' 
+import_topvigne_csv <- function(self,
+                                filepath,
+                                obs_name = NULL,
+                                overwrite = FALSE) {
+  ## number of rows added
+  if(is.null(obs_name)) {
+    warning("DATASET NOT IMPORTED : please provide a name (obs_name) for this dataset, with max 10 characters")
+    return(invisible(NULL))
+  }
+  ## check, read and standardise topvigne csv file
+  df <- standardise_topvigne_csv(filepath = filepath) 
+  if (exists("df", inherits = FALSE)) {
+    if(nchar(obs_name)>10) {
+      warning("DATASET NOT IMPORTED : obs_name too long")
+      return(invisible(NULL))
+    }
+    self$add_obs(name = obs_name, df = df, source_file = filepath, overwrite = overwrite)
+    }
+}
+
 
 #' @title Export Prepared Data and Statistics to a Timestamped Excel File
 #'
@@ -882,4 +919,3 @@ export_stats_sheets <- function(self, selected_data = NULL) {
   
   invisible(self)
 }
-
