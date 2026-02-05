@@ -73,7 +73,9 @@ usethis::use_version("minor")
 
 ## creer site
 usethis::use_pkgdown()
-pkgdown::clean_site(force=TRUE)
+
+### suppression (OPTIONNEL, attention long pour tout mettre)
+pkgdown::clean_site(force=TRUE) ## attentio
 ## SINON : suppression manuelle de \docs
 pkgdown::build_site(override = list(destination = "docs"))
 usethis::use_pkgdown_github_pages()
