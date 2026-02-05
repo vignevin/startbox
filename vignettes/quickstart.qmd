@@ -71,7 +71,7 @@ Cet objet contient nos données, avec en particulier :
 -   les métadonnées, issues des feuilles Excel placette et modalité dans `metadata`
 
 ```{r}
-# affichage des premières lignes des données d'observation data_F1_2024 :
+# affichage des premières lignes des données d'observation data_G1_2024 :
 head(mydata$obs_data$data_G1)
 ```
 
@@ -145,7 +145,7 @@ plot_xpbar(mydata,stat = "eff_G1")
 ## Heat map
 
 ```{r}
-plot_xpheat(mydata,stat = "eff_G1")
+plot_xpheat(mydata,stat = "eff_G1", calculation_choices = "efficacité frequence PM_BER_PC", resids = T)
 ```
 # Exporter les stats
 

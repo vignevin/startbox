@@ -52,9 +52,14 @@ De la même manière que précédemment, une sélection interactive peut-être r
 
 Une fois que l'importation est réalisée et validée, il faut ajouter les données à l'objet `user_data`.
 
+```{r eval= FALSE}
+# Option 1 : ajout direct dans l'objet user_data avec le nom du fichier
+mydata$add_obs(name = "F1", df = data_F1, source_file = file_path)
+```
+
 ```{r}
-# Ajout direct dans l'objet user_data avec le nom du fichier
-mydata$add_obs(name = "F1", df = data_F1)
+# Option 2 : importer directement dans mydata
+import_topvigne_csv(mydata,filepath=file_path,obs_name = "F1")
 ```
 
 Une fois les données importées dans votre objet `user_data`, il est possible de les analyser et visualiser.
