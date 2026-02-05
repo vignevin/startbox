@@ -426,6 +426,11 @@ load_data_sheets <- function(self) {
 #'
 #' @export
 export_data_sheets <- function(self, update_mto = FALSE) {
+  ## set options for NA string
+  old <- options(openxlsx2.na.strings = "")
+  on.exit(options(old), add = TRUE)
+  ###
+  
   wb <- openxlsx2::wb_load(self$excel_data_trial)
   
   # update meteo
@@ -771,6 +776,10 @@ import_topvigne_csv <- function(self,
 #'
 #' @export
 export_stats_sheets <- function(self, selected_data = NULL) {
+  ## set options for NA string
+  old <- options(openxlsx2.na.strings = "")
+  on.exit(options(old), add = TRUE)
+  ###
   
   # 1. Initial checks (Input & Data)
   if (!inherits(self, "R6")) {
