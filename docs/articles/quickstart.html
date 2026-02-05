@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">startbox</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Activer la navigation">
@@ -105,7 +105,7 @@
 <div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Création d'un objet avec fichier Excel existant</span></span>
 <span><span class="co"># ici le fichier Excel est un fichier exemple fourni avec le package</span></span>
-<span><span class="va">mydata</span> <span class="op">&lt;-</span> <span class="va"><a href="../reference/user_data.html">user_data</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>trial_file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,<span class="st">"standard_exemple.xlsx"</span>,package<span class="op">=</span><span class="st">"startbox"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mydata</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_excel_file.html">load_excel_file</a></span><span class="op">(</span>trial_file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>,<span class="st">"standard_exemple.xlsx"</span>,package<span class="op">=</span><span class="st">"startbox"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 📄 Using provided Excel file: standard_exemple.xlsx</span></span>
 <span><span class="co">#&gt; ✅ Sheet 'dictionary loaded</span></span>
 <span><span class="co">#&gt; ✅ Sheet 'placette' loaded into metadata$placette.</span></span>
@@ -114,15 +114,9 @@
 <span><span class="co">#&gt; ✅ Sheet 'ppp' loaded into metadata$ppp.</span></span>
 <span><span class="co">#&gt; ⚠️ Sheet data_template is empty and not loaded</span></span>
 <span><span class="co">#&gt; Column observation_date converted with format %d/%m/%Y</span></span>
-<span><span class="co">#&gt; 🔁 Sheet already loaded: data_F1 → replaced.</span></span>
+<span><span class="co">#&gt; ✅ Sheet data_F1 added into obs_data</span></span>
 <span><span class="co">#&gt; Column observation_date converted with format %d/%m/%Y</span></span>
-<span><span class="co">#&gt; 🔁 Sheet already loaded: data_F2 → replaced.</span></span>
-<span><span class="co">#&gt; Column observation_date converted with format %d/%m/%Y</span></span>
-<span><span class="co">#&gt; 🔁 Sheet already loaded: data_G1 → replaced.</span></span>
-<span><span class="co">#&gt; Column observation_date converted with format %d/%m/%Y</span></span>
-<span><span class="co">#&gt; 🔁 Sheet already loaded: data_G2 → replaced.</span></span>
-<span><span class="co">#&gt; Column observation_date converted with format %d/%m/%Y</span></span>
-<span><span class="co">#&gt; 🔁 Sheet already loaded: data_G3 → replaced.</span></span>
+<span><span class="co">#&gt; ✅ Sheet data_G1 added into obs_data</span></span>
 <span><span class="co">#&gt; Column meteo_datetime converted with format %d/%m/%Y</span></span>
 <span><span class="co">#&gt; ✅ Sheet 'meteo' loaded into self$meteo</span></span></code></pre></div>
 </div>
@@ -143,7 +137,7 @@
 </ul>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># affichage des premières lignes des données d'observation data_F1_2024 :</span></span>
+<code class="sourceCode R"><span><span class="co"># affichage des premières lignes des données d'observation data_G1_2024 :</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mydata</span><span class="op">$</span><span class="va">obs_data</span><span class="op">$</span><span class="va">data_G1</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   plot_id PM_BER_PC bbch_stage observation_date</span></span>
 <span><span class="co">#&gt; 2     10A         0    BBCH 77       2024-06-25</span></span>
@@ -163,12 +157,12 @@
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/prepare_data.html">prepare_data</a></span><span class="op">(</span><span class="va">mydata</span>, df<span class="op">=</span><span class="st">"data_G1"</span>, prep_name <span class="op">=</span> <span class="st">"default_G1"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; dataframe data_G1 found in observations data</span></span>
 <span><span class="co">#&gt; variables found:PM_BER_PC</span></span>
-<span><span class="co">#&gt; Variable choosenPM_BER_PC</span></span>
+<span><span class="co">#&gt; Variable chosen: PM_BER_PC</span></span>
 <span><span class="co">#&gt; plot_id: 10A,10B,10C,10D,1A,1B,1C,1D,2A,2B,2C,2D,3A,3B,3C,3D,4A,4B,4C,4D,5A,5B,5C,5D,6A,6B,6C,6D,7A,7B,7C,7D,8A,8B,8C,8D,9A,9B,9C,9D not in the reference plot description</span></span>
 <span><span class="co">#&gt; flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10</span></span>
 <span><span class="co">#&gt; plot_id: 10A,10B,10C,10D,1A,1B,1C,1D,2A,2B,2C,2D,3A,3B,3C,3D,4A,4B,4C,4D,5A,5B,5C,5D,6A,6B,6C,6D,7A,7B,7C,7D,8A,8B,8C,8D,9A,9B,9C,9D not in the reference plot description</span></span>
-<span><span class="co">#&gt; WARNING : at least one plot_id in the dataset was not found in the sheet placette (plot_desc in metadata)</span></span>
-<span><span class="co">#&gt; flex merging for plot_id. 10A = A10 = a10</span></span>
+<span><span class="co">#&gt; [merge_data_plotdesc] WARNING : at least one plot_id in the dataset was not found in the sheet placette (plot_desc in metadata)</span></span>
+<span><span class="co">#&gt; [merge_data_plotdesc] flex merging for plot_id. 10A = A10 = a10</span></span>
 <span><span class="co">#&gt; Prepared data saved in [data_user object]$prepared_data$default_G1</span></span>
 <span><span class="co"># df : le nom du dataframe à préparer)</span></span>
 <span><span class="co"># prep_name : le nom du tableau de données en sortie</span></span>
@@ -187,9 +181,9 @@
 <span><span class="co">#&gt; dataframe default_G1 found in prepared data</span></span>
 <span><span class="co">#&gt; plot_id: 10A,10B,10C,10D,1A,1B,1C,1D,2A,2B,2C,2D,3A,3B,3C,3D,4A,4B,4C,4D,5A,5B,5C,5D,6A,6B,6C,6D,7A,7B,7C,7D,8A,8B,8C,8D,9A,9B,9C,9D not in the reference plot description</span></span>
 <span><span class="co">#&gt; flex automatically set to TRUE to try to find equivalence in plot_id such as 10A = A10</span></span>
-<span><span class="co">#&gt; generation of block_association table</span></span>
+<span><span class="co">#&gt; Generating block_association table</span></span>
 <span><span class="co">#&gt; [1] "block TNT used for calculation of efficacy"</span></span>
-<span><span class="co">#&gt; flex merging for plot_id. 10A = A10 = a10</span></span>
+<span><span class="co">#&gt; [merge_data_plotdesc] flex merging for plot_id. 10A = A10 = a10</span></span>
 <span><span class="co">#&gt; Prepared data saved in [data_user object]$prepared_data$eff_G1</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h3 id="accéder-aux-données-préparées">Accéder aux données préparées<a class="anchor" aria-label="anchor" href="#acc%C3%A9der-aux-donn%C3%A9es-pr%C3%A9par%C3%A9es"></a>
@@ -232,7 +226,7 @@
 <span><span class="co">#&gt; for efficacité frequence PM_BER_PC Bartlett test p-value is greater than 0.05 : no significant differences in variance between groups detected</span></span>
 <span><span class="co">#&gt; for efficacité intensite PM_BER_PC Shapiro test p-value is less than 0.05 : the model residuals do not appear to follow a normal distribution</span></span>
 <span><span class="co">#&gt; for efficacité intensite PM_BER_PC Bartlett test p-value is less than 0.05 : significant differences in variance between groups are detected</span></span>
-<span><span class="co">#&gt; Stats saved in : [data_user object]stats$eff_G1</span></span></code></pre></div>
+<span><span class="co">#&gt; Stats saved in : [data_user object]$stats$eff_G1</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h3 id="afficher-les-résultats">Afficher les résultats<a class="anchor" aria-label="anchor" href="#afficher-les-r%C3%A9sultats"></a>
 </h3>
@@ -285,7 +279,7 @@
 </h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_xpheat.html">plot_xpheat</a></span><span class="op">(</span><span class="va">mydata</span>,stat <span class="op">=</span> <span class="st">"eff_G1"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_xpheat.html">plot_xpheat</a></span><span class="op">(</span><span class="va">mydata</span>,stat <span class="op">=</span> <span class="st">"eff_G1"</span>, calculation_choices <span class="op">=</span> <span class="st">"efficacité frequence PM_BER_PC"</span>, resids <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
 <figure><p><img src="quickstart_files/figure-html/unnamed-chunk-10-1.png" width="672"></p>
@@ -293,7 +287,14 @@
 </div>
 </div>
 </div>
-</section></section><script id="quarto-html-after-body" type="application/javascript">
+</section></section><section class="section level2"><h2 id="exporter-les-stats">Exporter les stats<a class="anchor" aria-label="anchor" href="#exporter-les-stats"></a>
+</h2>
+<p>Les résultats d’analyses stats peuvent être exportés dans un fichier Excel. Le principe de base est de séparer strictement d’une part les données brutes et d’autre part les données traitées et les résultats d’analyses stats. La procédure d’export créée donc un nouveau fichier Excel. Ce fichier Excel contient les données préparées et les statistiques associées. Il est par défaut sauvegardé dans le dossier téléchargement.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/export_stats_sheets.html">export_stats_sheets</a></span><span class="op">(</span><span class="va">mydata</span><span class="op">)</span></span></code></pre></div>
+</div>
+</section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const isCodeAnnotation = (el) => {
       for (const clz of el.classList) {
