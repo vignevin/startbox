@@ -857,3 +857,176 @@ plot_meteo <- function(self, start_day = NULL, end_day = NULL, rain_date_labels 
   attr(p, "data_used") <- df
   p
 }
+
+
+#' Plot experimental design with an integrated treatment table
+#'
+#' @param self R6 object of class UserData (requires metadata$plot_desc and metadata$moda_desc)
+#' @param highlight_tnt logical, if TRUE, highlights untreated checks (TNT) in yellow. Default is TRUE.
+#' @param color_by character, determines tile coloring: "block" (default), "trt" (treatment), or "none".
+#' @param label_by character, choose whether to display "plot_id" (default) or "trt" (treatment code) inside tiles.
+#' @param parcel_name character, the title of the plot. Defaults to metadata values if NULL.
+#' @param trt_legend logical, if TRUE, draws a compact treatment legend on the right. Default is TRUE.
+#' @return a ggplot object
+#' @export
+plan_xp <- function(self,
+                    highlight_tnt = TRUE,
+                    color_by      = c("block", "trt", "none"),
+                    label_by      = c("plot_id", "trt"),
+                    parcel_name   = NULL,
+                    trt_legend    = TRUE) {
+  
+  # Argument matching: use the first option as default if not explicitly provided
+  color_by <- match.arg(color_by)
+  label_by <- match.arg(label_by)
+  
+  # Basic sanity checks on the input object
+  if (!inherits(self, "UserData")) stop("[plan_xp] `self` must be a 'UserData' object.")
+  if (!("metadata" %in% names(self)) || !("plot_desc" %in% names(self$metadata))) {
+    stop("[plan_xp] `self$metadata$plot_desc` is missing.")
+  }
+  
+  # Extract plot description and check for required spatial columns
+  df <- self$metadata$plot_desc
+  req <- c("plot_id","plot_x","plot_y")
+  miss <- setdiff(req, names(df))
+  if (length(miss)) stop("[plan_xp] Missing columns: ", paste(miss, collapse=", "))
+  
+  # Light cleanup: ensure coordinates are numeric and remove rows with missing spatial data
+  df$plot_x <- as.numeric(df$plot_x)
+  df$plot_y <- as.numeric(df$plot_y)
+  df <- df[!is.na(df$plot_x) & !is.na(df$plot_y), , drop = FALSE]
+  
+  # Flagging untreated check (TNT) plots
+  df$is_tnt <- FALSE
+  if ("xp_trt_code" %in% names(df)) {
+    xp_chr <- as.character(df$xp_trt_code)
+    df$is_tnt <- grepl("^\\s*TNT", xp_chr, ignore.case = TRUE)
+  }
+  
+  # Determine the title, looking into metadata fallbacks if necessary
+  if (is.null(parcel_name)) {
+    if ("parcel_name" %in% names(self$metadata)) parcel_name <- self$metadata$parcel_name
+    if (is.null(parcel_name) && "parcelle" %in% names(self$metadata)) parcel_name <- self$metadata$parcelle
+  }
+  if (is.null(parcel_name)) parcel_name <- "Experimental Design"
+  
+  # Assign the labels to be displayed inside the tiles
+  if (label_by == "trt" && "xp_trt_code" %in% names(df)) {
+    df$.__label__ <- as.character(df$xp_trt_code)
+  } else {
+    df$.__label__ <- as.character(df$plot_id) # Default fallback
+  }
+  
+  # Determine the background fill color logic
+  if (color_by == "block" && "block_code" %in% names(df)) {
+    df$.__fill__ <- as.character(df$block_code)
+  } else if (color_by == "trt" && "xp_trt_code" %in% names(df)) {
+    df$.__fill__ <- as.character(df$xp_trt_code)
+  } else {
+    df$.__fill__ <- "Other"
+  }
+  
+  # Highlight untreated checks (TNT) - this takes priority over other colors if enabled
+  if (isTRUE(highlight_tnt)) {
+    idx_tnt <- !is.na(df$is_tnt) & df$is_tnt
+    df$.__fill__[idx_tnt] <- "__TNT__"
+  }
+  
+  # Generate a dynamic color palette based on blocks or treatments
+  fill_levels <- setdiff(sort(unique(df$.__fill__)), c("__TNT__", "Other"))
+  if (length(fill_levels) > 0) {
+    hues <- seq(15, 375, length.out = length(fill_levels) + 1)[1:length(fill_levels)]
+    dyn_cols <- grDevices::hcl(h = hues, c = 55, l = 70)
+    names(dyn_cols) <- fill_levels
+  } else {
+    dyn_cols <- NULL
+  }
+  fill_values <- c(dyn_cols, "__TNT__" = "#FFD700", "Other" = "#D9D9D9")
+  df$.__fill__ <- factor(df$.__fill__, levels = names(fill_values))
+  
+  # Define the spatial boundaries for the plot
+  x_min <- min(df$plot_x); x_max <- max(df$plot_x)
+  y_min <- min(df$plot_y); y_max <- max(df$plot_y)
+  xlim <- c(x_min - 0.5, x_max + 0.5)
+  ylim <- c(y_min - 0.5, y_max + 0.5)
+  
+  ## --- Setup the treatment table (rendered within the same ggplot) ---
+  tab <- NULL
+  if (isTRUE(trt_legend) && "moda_desc" %in% names(self$metadata)) {
+    md <- self$metadata$moda_desc
+    if (all(c("xp_trt_code","xp_trt_name") %in% names(md))) {
+      md$xp_trt_code_chr <- as.character(md$xp_trt_code)
+      # Keep only numeric codes for the legend (excluding specific TNT tags)
+      code_num <- suppressWarnings(as.numeric(md$xp_trt_code_chr))
+      md <- md[!is.na(code_num), c("xp_trt_code_chr","xp_trt_name"), drop = FALSE]
+      if (nrow(md) > 0) {
+        md <- md[order(as.numeric(md$xp_trt_code_chr)), , drop = FALSE]
+        
+        # Internal sizing constants for a compact legend
+        LEG_W      <- 1.2   # Table width relative to tile units
+        LEG_GAP    <- 0.8   # Space between the map and the table
+        LEG_H_FRAC <- 0.55  # Table occupies ~55% of the plot height
+        LEG_TEXT   <- 3.0   # Legend font size
+        
+        # Calculate vertical positioning for the legend
+        H      <- (y_max - y_min + 1)
+        n <- nrow(md)
+        leg_height <- H * LEG_H_FRAC
+        cell_h     <- leg_height / n
+        top_margin <- (H - leg_height) - 1
+        y_top      <- y_max - top_margin
+        y_centers  <- y_top - (seq_len(n) - 0.5) * cell_h
+        
+        x0 <- x_max + LEG_GAP
+        x1 <- x0 + LEG_W
+        
+        tab <- data.frame(
+          xmin  = x0,
+          xmax  = x1,
+          ymin  = y_centers - cell_h/2,
+          ymax  = y_centers + cell_h/2,
+          xtext = x0 + 0.08,
+          ytext = y_centers,
+          label = paste0(md$xp_trt_code_chr, "  ", md$xp_trt_name),
+          stringsAsFactors = FALSE
+        )
+        
+        # Expand x-limits to ensure the table is visible
+        xlim <- c(x_min - 0.5, x1 + 0.5)
+      }
+    }
+  }
+  
+  ## --- Main Plot Construction ---
+  p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$plot_x, y = .data$plot_y)) +
+    # Draw the field tiles
+    ggplot2::geom_tile(ggplot2::aes(fill = .data$.__fill__), color = "grey", linewidth = 0.5) +
+    # Draw the plot labels (ID or treatment code)
+    ggplot2::geom_text(ggplot2::aes(label = .data$.__label__), size = 4) +
+    ggplot2::scale_fill_manual(values = fill_values, drop = FALSE, na.translate = FALSE) +
+    ggplot2::guides(fill = "none") +
+    # Force coordinates and aspect ratio
+    ggplot2::coord_fixed(ratio = 0.3,
+                         xlim = if (exists("xlim")) xlim else NULL,
+                         ylim = if (exists("ylim")) ylim else NULL) +
+    ggplot2::theme_void() +
+    ggplot2::theme(panel.border = ggplot2::element_rect(colour = "grey", fill = NA),
+                   plot.title   = ggplot2::element_text(face = "bold", hjust = 0.5)) +
+    ggplot2::labs(title = parcel_name)
+  
+  # Overlay the legend rectangles and text if the table was successfully created
+  if (!is.null(tab)) {
+    p <- p +
+      ggplot2::geom_rect(data = tab,
+                         ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax,
+                                      ymin = .data$ymin, ymax = .data$ymax),
+                         inherit.aes = FALSE, fill = "white",
+                         colour = "grey30", linewidth = 0.3) +
+      ggplot2::geom_text(data = tab,
+                         ggplot2::aes(x = .data$xtext, y = .data$ytext, label = .data$label),
+                         inherit.aes = FALSE, hjust = 0, size = 3.0)
+  }
+  
+  return(p)
+}
