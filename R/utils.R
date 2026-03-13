@@ -222,8 +222,13 @@ nearest_tnt <- function(
   data <- merge(data, self$metadata$moda_desc)
 
   # Separate the data into two groups: TNT and others
-  tnt_data <- data %>% dplyr::filter(xp_trt_name == code_tnt)
-  non_tnt_data <- data %>% dplyr::filter(xp_trt_name != code_tnt)
+  # We're looking for the code_tnt in the code OR in the name
+  tnt_data <- data %>% 
+    dplyr::filter(xp_trt_code == code_tnt | xp_trt_name == code_tnt)
+  
+  # The rest is considered non-DTT
+  non_tnt_data <- data %>% 
+    dplyr::filter(xp_trt_code != code_tnt & xp_trt_name != code_tnt)
 
   # Initialize a list to store the results
   results <- list()
