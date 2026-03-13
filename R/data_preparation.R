@@ -428,15 +428,16 @@ standardise_data <- function(
 resume_pivot_wider <- function(df_resume) {
   # local binding
   calculation <- value <- NULL
-
+  
   if (!is.data.frame(df_resume)) {
     stop("Input must be a data frame")
   }
-
+  
   if (
     "calculation" %in% colnames(df_resume) && "value" %in% colnames(df_resume)
   ) {
     df_resume %>%
+      dplyr::mutate(row_id = dplyr::row_number()) %>% 
       tidyr::pivot_wider(
         names_from = calculation,
         values_from = value
@@ -491,7 +492,7 @@ prepare_data <- function(
   filters = NULL,
   code_tnt = "TNT",
   raw = FALSE,
-  tnt_mode = c("block", "all", "nearest", "user"),
+  tnt_mode = c("all", "block", "nearest", "user"),
   add_plot_desc = TRUE,
   flex = NULL,
   add_trt_desc = TRUE,
@@ -667,28 +668,43 @@ prepare_data <- function(
         }
 
         if (!is.null(group_tnt)) {
-          if (flex) {
-            mean_tnt$clean_id <- harmonize_plot_id_format(mean_tnt$plot_id) # harmonize plot_id
+          has_tnt_id <- "tnt_id" %in% names(mean_tnt)
+          has_plot_id <- "plot_id" %in% names(mean_tnt)
+          
+          if (flex && (has_tnt_id || has_plot_id)) {
+            id_col <- if (has_tnt_id) mean_tnt$tnt_id else mean_tnt$plot_id
+            mean_tnt$clean_id <- harmonize_plot_id_format(id_col)
+            
+            # Clear the reference array (mean_tnt)
+            cols_to_remove <- c("plot_id", "block_code")
+            mean_tnt_clean <- mean_tnt[, !names(mean_tnt) %in% cols_to_remove, drop = FALSE]
+            
             tmp_data <- data
-            tmp_data$clean_id <- harmonize_plot_id_format(tmp_data$plot_id) # harmonize plot_id
-            tmp_data <- tmp_data[,
-              !names(tmp_data) %in% c("plot_id", "block_code")
-            ] ## removing plot_id
-            # join data and plot description
-            data <- dplyr::left_join(
+            tmp_data$clean_id <- harmonize_plot_id_format(tmp_data$plot_id) 
+            # Here we store tmp_data along with its plot_id
+            
+            # Define the join columns
+            join_by <- "clean_id"
+            if ("calculation" %in% names(mean_tnt_clean)) join_by <- c(join_by, "calculation")
+            
+            # join data and plot description (We use `data_joined` to keep the loop clean)
+            data_joined <- dplyr::left_join(
               tmp_data,
-              mean_tnt,
-              by = c("clean_id", "calculation")
+              mean_tnt_clean,
+              by = join_by
             ) %>%
               dplyr::select(-clean_id)
           } else {
-            data <- merge(data, mean_tnt)
+            # “all” case (or flex=FALSE) 
+            data_joined <- merge(data, mean_tnt)
           }
         } else {
-          data$mean_tnt = as.numeric(mean_tnt$mean_tnt)
+          data_joined <- data
+          data_joined$mean_tnt = as.numeric(mean_tnt$mean_tnt)
         }
-
-        resume <- data %>%
+        
+        # IMPORTANT: Calculations are based on data_joined, not data.
+        resume <- data_joined %>%
           dplyr::group_by(!!!group_syms) %>%
           dplyr::reframe(
             mean_tnt = mean(mean_tnt),
@@ -698,6 +714,7 @@ prepare_data <- function(
           dplyr::filter(
             !plot_id %in% get_tnt_ids_from_association(df_tnt = df_tnt)
           )
+        
       } else {
         # end of efficacy case
         resume <- data %>%
@@ -1047,7 +1064,7 @@ prepare_tnt_association <- function(self, tnt_mode, code_tnt) {
       is.null(self$plot_tnt_association$nearest_association)
   ) {
     message("Generating nearest_association table")
-    nearest_tnt(self)
+    nearest_tnt(self, code_tnt = code_tnt)
   }
 
   # get the association table
