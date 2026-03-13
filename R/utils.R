@@ -572,3 +572,50 @@ check_pom_csv <- function(filepath, required = c("DATE", "PLUIE")) {
   )
   return(TRUE)
 }
+
+#' Generate a summary of the experimental trial
+#'
+#' Prints a structured overview of the trial stored within a UserData object. 
+#' This includes the trial name, plot counts, treatment counts, and a breakdown 
+#' of the available observation data sheets.
+#'
+#' @param self An R6 object of class UserData (containing metadata and obs_data).
+#'
+#' @return The summary directly to the console.
+#' @export
+resume_essai <- function(self) {
+  
+  cat("\n=========================================\n")
+  cat("📊 TRIAL SUMMARY:", self$name, "\n")
+  cat("=========================================\n\n")
+  
+  # 1. Placette count 
+  if (!is.null(self$metadata$plot_desc)) {
+    nb_placettes <- nrow(self$metadata$plot_desc)
+    cat("📍 Number of plots:", nb_placettes, "\n")
+  } else {
+    cat("📍 Number of plots: 0 ('placette' table not found)\n")
+  }
+  
+  # 2. Treatment count
+  if (!is.null(self$metadata$moda_desc)) {
+    nb_modalites <- nrow(self$metadata$moda_desc)
+    cat("🧪 Number of treatments:", nb_modalites, "\n")
+  } else {
+    cat("🧪 Number of treatments: 0 ('modalite' table not found)\n")
+  }
+  
+  # 3. Data sheet count
+  nb_feuilles <- length(self$obs_data)
+  cat("📄 Data sheets:", nb_feuilles, "\n")
+  
+  # Provide a breakdown for each sheet if data is present
+  if (nb_feuilles > 0) {
+    cat("\n   Observation details:\n")
+    for (nom_feuille in names(self$obs_data)) {
+      nb_lignes <- nrow(self$obs_data[[nom_feuille]])
+      cat("   - [", nom_feuille, "]:", nb_lignes, "rows recorded\n")
+    }
+  }
+  
+}
