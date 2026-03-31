@@ -588,7 +588,7 @@ check_pom_csv <- function(filepath, required = c("DATE", "PLUIE")) {
 #'
 #' @return The summary directly to the console.
 #' @export
-resume_essai <- function(self) {
+resume_expe <- function(self) {
   
   cat("\n=========================================\n")
   cat("📊 TRIAL SUMMARY:", self$name, "\n")
