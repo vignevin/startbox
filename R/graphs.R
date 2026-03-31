@@ -857,3 +857,222 @@ plot_meteo <- function(self, start_day = NULL, end_day = NULL, rain_date_labels 
   attr(p, "data_used") <- df
   p
 }
+
+#' Plot experimental design with an integrated treatment table
+#'
+#' @param self R6 object of class UserData (requires metadata$plot_desc and metadata$moda_desc)
+#' @param tnt_color character, highlights untreated checks (TNT) in a specific color. Default is NULL: no specific color assigned to TNT
+#' @param color_var character, determines tile coloring: "xp_trt_code" (default) or "block_code"
+#' @param label_var character, choose whether to display "plot_id" (default) or "xp_trt_code" inside tiles.
+#' @param palette character. choose palette for colors  c("hue", "brewer_qual", "viridis", "okabe_ito", "grey"). hue by default
+#' @param brewer_pal character. only used if palette = "brewer_qual", default set to "Set2"
+#' @param viridis_opt character, only used if palette = "viridis", default set to "D"
+#' @param expe_name character, the name of the experiment. Defaults to first occurence of metadata$plot$expe_name if NULL.
+#' @param title character, title of the plot
+#' @param trt_legend logical, if TRUE, draws a compact treatment legend on the right. Default is TRUE.
+#' @return a ggplot object
+#' @export
+plan_xp <- function(
+  self,
+  tnt_color = NULL,
+  color_var = c("xp_trt_code", "block_code"),
+  label_var = c("plot_id", "xp_trt_code"),
+  palette = c("hue", "brewer_qual", "viridis", "okabe_ito", "grey"),
+  brewer_pal = "Set2", # only used if palette = "brewer_qual"
+  viridis_opt = "D", # only used if palette = "viridis"
+  expe_name = NULL,
+  title = NULL,
+  trt_legend = TRUE,
+  text_size = 3
+) {
+  # Argument matching: use the first option as default if not explicitly provided
+  label_var <- match.arg(label_var)
+  color_var <- match.arg(color_var)
+
+  # --- Helper : génère n couleurs selon la palette choisie ---
+  palette <- match.arg(palette)
+
+  make_colors <- function(n) {
+    if (n == 0) return(character(0))
+    switch(
+      palette,
+      hue = scales::hue_pal()(n),
+      brewer_qual = {
+        max_n <- RColorBrewer::brewer.pal.info[brewer_pal, "maxcolors"]
+        if (n > max_n) {
+          # Interpolation if more levels than palette can manage
+          colorRampPalette(RColorBrewer::brewer.pal(max_n, brewer_pal))(n)
+        } else {
+          RColorBrewer::brewer.pal(max(3, n), brewer_pal)[seq_len(n)]
+        }
+      },
+      viridis = viridisLite::viridis(n, option = viridis_opt),
+      okabe_ito = {
+        # Palette daltonien-friendly 8 colors (Okabe & Ito 2008)
+        oi <- c(
+          "#E69F00",
+          "#56B4E9",
+          "#009E73",
+          "#F0E442",
+          "#0072B2",
+          "#D55E00",
+          "#CC79A7",
+          "#000000"
+        )
+        if (n > length(oi)) colorRampPalette(oi)(n) else oi[seq_len(n)]
+      },
+      grey = grey.colors(n, start = 0.85, end = 0.2)
+    )
+  }
+
+  # Basic sanity checks on the input object
+  if (!inherits(self, "UserData"))
+    stop("[plan_xp] `self` must be a 'UserData' object.")
+  if (
+    !("metadata" %in% names(self)) || !("plot_desc" %in% names(self$metadata))
+  ) {
+    stop("[plan_xp] `self$metadata$plot_desc` is missing.")
+  }
+
+  # Extract plot description and check for required spatial columns
+  df <- self$metadata$plot_desc
+  req <- c("plot_id", "plot_x", "plot_y")
+  miss <- setdiff(req, names(df))
+  if (length(miss))
+    stop("[plan_xp] Missing columns: ", paste(miss, collapse = ", "))
+
+  # Light cleanup: ensure coordinates are numeric and remove rows with missing spatial data
+  df$plot_x <- as.numeric(df$plot_x)
+  df$plot_y <- as.numeric(df$plot_y)
+  df <- df[!is.na(df$plot_x) & !is.na(df$plot_y), , drop = FALSE]
+
+  # Flagging untreated check (TNT) plots
+  df$is_tnt <- FALSE
+  if ("xp_trt_code" %in% names(df)) {
+    xp_chr <- as.character(df$xp_trt_code)
+    df$is_tnt <- grepl("^\\s*TNT", xp_chr, ignore.case = TRUE)
+  }
+
+  # Determine the title, looking into metadata fallbacks if necessary
+  if (is.null(expe_name)) {
+    expes <- unique(self$metadata$moda_desc$expe_name) ## extract expe name from moda_desc
+    if (length(expes) > 1) {
+      message(
+        "more than one experiment available : ",
+        paste(expes, collapse = ", "),
+        " only the firt one is ploted"
+      )
+    }
+    expe_name <- expes[1]
+  }
+  ## filtering df for plot in experiment
+  df <- df[
+    df$xp_trt_code %in%
+      self$metadata$moda_desc$xp_trt_code[
+        self$metadata$moda_desc$expe_name == expe_name
+      ],
+  ]
+  if (nrow(df) == 0) {
+    message("no plot found, please consider to correct expe_name")
+    return()
+  }
+
+  if (is.null(title)) title <- expe_name
+
+  if (color_var == "xp_trt_code") {
+    if (!is.null(self$metadata$moda_desc)) {
+      df <- merge(df, self$metadata$moda_desc, all.x = T)
+    }
+    if (!"xp_trt_name" %in% colnames(df)) {
+      df$xp_trt_name <- df$xp_trt_code
+    }
+    # Identifier les niveaux TNT (via code ou name)
+    is_tnt <- grepl("TNT", df$xp_trt_code, ignore.case = FALSE) |
+      grepl("TNT", df$xp_trt_name, ignore.case = FALSE)
+
+    # code -> name for legend
+    legend_labels <- df %>%
+      dplyr::distinct(xp_trt_code, xp_trt_name) %>%
+      dplyr::arrange(xp_trt_code)
+
+    levels_order <- legend_labels$xp_trt_code
+    df$color_factor <- factor(df$xp_trt_code, levels = levels_order)
+
+    # Palette : TNT = tnt_color if provided
+    if (!is.null(tnt_color)) {
+      is_tnt <- grepl("TNT", legend_labels$xp_trt_code) |
+        grepl("TNT", legend_labels$xp_trt_name)
+      n_non_tnt <- sum(!is_tnt)
+      auto_cols <- make_colors(n_non_tnt) # <-- helper
+      fill_values <- setNames(
+        ifelse(is_tnt, tnt_color, auto_cols[cumsum(!is_tnt)]),
+        legend_labels$xp_trt_code
+      )
+    } else {
+      fill_values <- setNames(
+        make_colors(nrow(legend_labels)), # <-- helper
+        legend_labels$xp_trt_code
+      )
+    }
+    #   # legend labels : xp_trt_name
+    fill_labels <- setNames(
+      legend_labels$xp_trt_name,
+      legend_labels$xp_trt_code
+    )
+
+    color_scale <- scale_fill_manual(
+      values = fill_values,
+      labels = fill_labels,
+      name = "Treatement"
+    )
+  } else {
+    # block_code : palette appliquée directement via scale_fill_manual
+    df <- df %>% dplyr::mutate(block_code = as.character(block_code))
+
+    levels_order <- sort(unique(df$block_code))
+    df$color_factor <- factor(df$block_code, levels = levels_order)
+    n_blocks <- length(levels_order)
+    fill_values <- setNames(make_colors(n_blocks), levels_order) # <-- helper
+
+    color_scale <- scale_fill_manual(
+      values = fill_values,
+      name = "Block"
+    )
+  }
+
+  x_min <- min(df$plot_x)
+  x_max <- max(df$plot_x)
+  y_min <- min(df$plot_y)
+  y_max <- max(df$plot_y)
+  xlim <- c(x_min - 0.5, x_max + 0.5)
+  ylim <- c(y_min - 0.5, y_max + 0.5)
+
+  p <- ggplot2::ggplot(df, aes(x = plot_x, y = plot_y, fill = color_factor)) +
+    ggplot2::geom_tile(color = "lightgrey", linewidth = 0.5) +
+    ggplot2::geom_text(
+      aes(label = .data[[label_var]]),
+      size = text_size,
+      fontface = "bold"
+    ) +
+    color_scale +
+    ggplot2::scale_x_continuous(breaks = sort(unique(df$plot_x))) +
+    ggplot2::scale_y_continuous(breaks = sort(unique(df$plot_y))) +
+    ggplot2::coord_fixed(
+      ratio = 0.3,
+      xlim = if (exists("xlim")) xlim else NULL,
+      ylim = if (exists("ylim")) ylim else NULL
+    ) +
+    ggplot2::theme_void() +
+    ggplot2::theme(
+      panel.border = ggplot2::element_rect(colour = "lightgrey", fill = NA),
+      plot.title = ggplot2::element_text(face = "bold", hjust = 0.5)
+    ) +
+    ggplot2::labs(title = title) +
+    ggplot2::theme(legend.position = "none")
+
+  if (trt_legend) {
+    p <- p + ggplot2::theme(legend.position = "right")
+  }
+
+  return(p)
+}
